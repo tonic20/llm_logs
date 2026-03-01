@@ -58,13 +58,4 @@ RSpec.describe "LlmLogs::Traces", type: :request do
     end
   end
 
-  describe "DELETE /llm_logs/traces/:id" do
-    it "deletes the trace and redirects" do
-      expect {
-        delete "/llm_logs/traces/#{trace.id}"
-      }.to change(LlmLogs::Trace, :count).by(-1)
-
-      expect(response).to redirect_to("/llm_logs/traces")
-    end
-  end
 end

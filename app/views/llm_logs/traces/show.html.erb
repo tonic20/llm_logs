@@ -12,11 +12,7 @@
         <%= @trace.started_at.strftime('%b %d, %Y %H:%M:%S') %>
       </p>
     </div>
-    <div class="flex items-center space-x-3">
-      <%= link_to "Back to traces", traces_path, class: "text-sm text-gray-600 hover:text-gray-900" %>
-      <%= button_to "Delete", trace_path(@trace), method: :delete, class: "text-sm text-red-600 hover:text-red-900",
-          data: { turbo_confirm: "Delete this trace?" } %>
-    </div>
+    <%= link_to "Back to traces", traces_path, class: "text-sm text-gray-600 hover:text-gray-900" %>
   </div>
 </div>
 

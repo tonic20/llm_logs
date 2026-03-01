@@ -1,7 +1,7 @@
 LlmLogs::Engine.routes.draw do
   root to: "traces#index"
 
-  resources :traces, only: [:index, :show, :destroy] do
+  resources :traces, only: [:index, :show] do
     resources :spans, only: [:show]
   end
 

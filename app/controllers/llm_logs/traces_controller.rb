@@ -11,10 +11,5 @@ module LlmLogs
       @root_spans = @trace.root_spans
     end
 
-    def destroy
-      @trace = Trace.find(params[:id])
-      @trace.destroy
-      redirect_to traces_path, notice: "Trace deleted."
-    end
   end
 end
