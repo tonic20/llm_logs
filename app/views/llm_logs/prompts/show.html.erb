@@ -3,7 +3,7 @@
     <div>
       <h1 class="text-2xl font-bold text-gray-900"><%= @prompt.name %></h1>
       <p class="text-sm text-gray-500 mt-1">
-        <span class="font-mono"><%= @prompt.project %>/<%= @prompt.slug %></span>
+        <span class="font-mono"><%= @prompt.slug %></span>
         <% if @prompt.description.present? %>
           &middot; <%= @prompt.description %>
         <% end %>
@@ -92,10 +92,7 @@
 
     <div class="mt-4 bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-4">
       <h3 class="text-sm font-medium text-gray-900 mb-2">SDK Usage</h3>
-      <pre class="text-xs bg-gray-50 rounded p-3 font-mono overflow-x-auto">prompt = LlmLogs::Prompt.load(
-  project: "<%= @prompt.project %>",
-  slug: "<%= @prompt.slug %>"
-)
+      <pre class="text-xs bg-gray-50 rounded p-3 font-mono overflow-x-auto">prompt = LlmLogs::Prompt.load("<%= @prompt.slug %>")
 params = prompt.build(
   # your variables here
 )</pre>

@@ -5,7 +5,6 @@ require "llm_logs/prompt_renderer"
 
 module LlmLogs
   mattr_accessor :enabled, default: true
-  mattr_accessor :default_project, default: "default"
   mattr_accessor :auto_instrument, default: true
   mattr_accessor :retention_days, default: 30
 

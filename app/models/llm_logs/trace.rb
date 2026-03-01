@@ -7,7 +7,6 @@ module LlmLogs
     validates :started_at, presence: true
 
     scope :recent, -> { order(started_at: :desc) }
-    scope :by_project, ->(project) { where(project: project) if project.present? }
     scope :by_status, ->(status) { where(status: status) if status.present? }
 
     def complete!

@@ -4,7 +4,6 @@ RSpec.describe "LlmLogs::Traces", type: :request do
   let!(:trace) do
     LlmLogs::Trace.create!(
       name: "test_trace",
-      project: "myapp",
       status: "completed",
       started_at: 1.hour.ago,
       completed_at: Time.current,
@@ -37,7 +36,6 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       get "/llm_logs"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("test_trace")
-      expect(response.body).to include("myapp")
     end
   end
 

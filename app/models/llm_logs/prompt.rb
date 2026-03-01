@@ -2,12 +2,11 @@ module LlmLogs
   class Prompt < ApplicationRecord
     has_many :versions, class_name: "LlmLogs::PromptVersion", dependent: :destroy
 
-    validates :project, presence: true
-    validates :slug, presence: true, uniqueness: { scope: :project }
+    validates :slug, presence: true, uniqueness: true
     validates :name, presence: true
 
-    def self.load(project:, slug:)
-      find_by!(project: project, slug: slug)
+    def self.load(slug)
+      find_by!(slug: slug)
     end
 
     def current_version

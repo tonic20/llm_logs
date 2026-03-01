@@ -2,43 +2,36 @@ require "spec_helper"
 
 RSpec.describe LlmLogs::Prompt do
   describe "validations" do
-    it "requires project, slug, and name" do
+    it "requires slug and name" do
       prompt = LlmLogs::Prompt.new
       expect(prompt).not_to be_valid
-      expect(prompt.errors[:project]).to include("can't be blank")
       expect(prompt.errors[:slug]).to include("can't be blank")
       expect(prompt.errors[:name]).to include("can't be blank")
     end
 
-    it "enforces unique slug per project" do
-      LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting")
-      dupe = LlmLogs::Prompt.new(project: "app", slug: "greeting", name: "Other")
+    it "enforces unique slug" do
+      LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      dupe = LlmLogs::Prompt.new(slug: "greeting", name: "Other")
       expect(dupe).not_to be_valid
-    end
-
-    it "allows same slug in different projects" do
-      LlmLogs::Prompt.create!(project: "app1", slug: "greeting", name: "Greeting 1")
-      prompt = LlmLogs::Prompt.new(project: "app2", slug: "greeting", name: "Greeting 2")
-      expect(prompt).to be_valid
     end
   end
 
   describe ".load" do
-    it "finds prompt by project and slug" do
-      created = LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting")
-      loaded = LlmLogs::Prompt.load(project: "app", slug: "greeting")
+    it "finds prompt by slug" do
+      created = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      loaded = LlmLogs::Prompt.load("greeting")
       expect(loaded).to eq(created)
     end
 
     it "raises when not found" do
       expect {
-        LlmLogs::Prompt.load(project: "app", slug: "missing")
+        LlmLogs::Prompt.load("missing")
       }.to raise_error(ActiveRecord::RecordNotFound)
     end
   end
 
   describe "#update_content!" do
-    let(:prompt) { LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting") }
+    let(:prompt) { LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting") }
 
     it "creates a new version with incrementing number" do
       prompt.update_content!(messages: [{ "role" => "user", "content" => "Hello {{name}}" }], model: "gpt-4")
@@ -51,7 +44,7 @@ RSpec.describe LlmLogs::Prompt do
   end
 
   describe "#build" do
-    let(:prompt) { LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting") }
+    let(:prompt) { LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting") }
 
     before do
       prompt.update_content!(
@@ -75,13 +68,13 @@ RSpec.describe LlmLogs::Prompt do
     end
 
     it "raises when no versions exist" do
-      empty_prompt = LlmLogs::Prompt.create!(project: "app", slug: "empty", name: "Empty")
+      empty_prompt = LlmLogs::Prompt.create!(slug: "empty", name: "Empty")
       expect { empty_prompt.build }.to raise_error(RuntimeError, /No versions exist/)
     end
   end
 
   describe "#version" do
-    let(:prompt) { LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting") }
+    let(:prompt) { LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting") }
 
     it "loads a specific version" do
       prompt.update_content!(messages: [{ "role" => "user", "content" => "v1" }])
@@ -93,7 +86,7 @@ RSpec.describe LlmLogs::Prompt do
   end
 
   describe "#rollback_to!" do
-    let(:prompt) { LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting") }
+    let(:prompt) { LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting") }
 
     it "creates a new version copying content from the specified version" do
       prompt.update_content!(messages: [{ "role" => "user", "content" => "v1" }], model: "gpt-4")

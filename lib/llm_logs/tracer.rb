@@ -8,10 +8,9 @@ module LlmLogs
       Thread.current[:llm_logs_span]
     end
 
-    def self.start_trace(name, project: nil, metadata: {})
+    def self.start_trace(name, metadata: {})
       trace = LlmLogs::Trace.create!(
         name: name,
-        project: project || LlmLogs.default_project,
         status: "running",
         metadata: metadata,
         started_at: Time.current
@@ -58,7 +57,6 @@ module LlmLogs
     def self.auto_create_trace(span_name)
       trace = LlmLogs::Trace.create!(
         name: "auto:#{span_name}",
-        project: LlmLogs.default_project,
         status: "running",
         started_at: Time.current
       )

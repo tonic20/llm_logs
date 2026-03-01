@@ -81,11 +81,11 @@ RSpec.describe LlmLogs::Trace do
       expect(LlmLogs::Trace.recent.first).to eq(new_trace)
     end
 
-    it ".by_project filters by project" do
-      t1 = LlmLogs::Trace.create!(name: "t1", project: "app1", started_at: Time.current)
-      _t2 = LlmLogs::Trace.create!(name: "t2", project: "app2", started_at: Time.current)
+    it ".by_status filters by status" do
+      t1 = LlmLogs::Trace.create!(name: "t1", status: "completed", started_at: Time.current)
+      _t2 = LlmLogs::Trace.create!(name: "t2", status: "running", started_at: Time.current)
 
-      expect(LlmLogs::Trace.by_project("app1")).to eq([t1])
+      expect(LlmLogs::Trace.by_status("completed")).to eq([t1])
     end
   end
 end

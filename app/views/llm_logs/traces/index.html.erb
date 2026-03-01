@@ -3,13 +3,6 @@
 
   <div class="flex items-center space-x-3">
     <%= form_tag traces_path, method: :get, class: "flex items-center space-x-2" do %>
-      <select name="project" class="rounded-md border-gray-300 text-sm py-1.5 px-3 bg-white border shadow-sm">
-        <option value="">All projects</option>
-        <% @projects.each do |project| %>
-          <option value="<%= project %>" <%= 'selected' if params[:project] == project %>><%= project %></option>
-        <% end %>
-      </select>
-
       <select name="status" class="rounded-md border-gray-300 text-sm py-1.5 px-3 bg-white border shadow-sm">
         <option value="">All statuses</option>
         <% %w[running completed error].each do |status| %>
@@ -27,7 +20,6 @@
     <thead class="bg-gray-50">
       <tr>
         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Spans</th>
         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tokens</th>
         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cost</th>
@@ -42,7 +34,6 @@
           <td class="px-4 py-3 text-sm">
             <%= link_to trace.name, trace_path(trace), class: "text-indigo-600 hover:text-indigo-900 font-medium" %>
           </td>
-          <td class="px-4 py-3 text-sm text-gray-500"><%= trace.project %></td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right"><%= trace.spans_count %></td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right">
             <%= number_with_delimiter(trace.total_input_tokens) %> &rarr; <%= number_with_delimiter(trace.total_output_tokens) %>
@@ -65,7 +56,7 @@
 
       <% if @traces.empty? %>
         <tr>
-          <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500">No traces found.</td>
+          <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">No traces found.</td>
         </tr>
       <% end %>
     </tbody>

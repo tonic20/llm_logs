@@ -47,13 +47,10 @@ RSpec.describe LlmLogs::Tracer do
       end
     end
 
-    it "uses default_project when project not specified" do
-      LlmLogs.default_project = "myapp"
-      LlmLogs::Tracer.start_trace("test") do |trace|
-        expect(trace.project).to eq("myapp")
+    it "stores metadata on the trace" do
+      LlmLogs::Tracer.start_trace("test", metadata: { "user" => "alice" }) do |trace|
+        expect(trace.metadata).to eq({ "user" => "alice" })
       end
-    ensure
-      LlmLogs.default_project = "default"
     end
   end
 

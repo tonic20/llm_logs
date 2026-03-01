@@ -3,7 +3,7 @@ require "spec_helper"
 RSpec.describe "LlmLogs::Prompts", type: :request do
   describe "GET /llm_logs/prompts" do
     it "renders the prompts index" do
-      LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting")
+      LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
       get "/llm_logs/prompts"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Greeting")
@@ -23,7 +23,6 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect {
         post "/llm_logs/prompts", params: {
           prompt: {
-            project: "app",
             slug: "greeting",
             name: "Greeting",
             model: "claude-sonnet-4",
@@ -44,7 +43,7 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
 
   describe "GET /llm_logs/prompts/:id" do
     it "renders the prompt detail" do
-      prompt = LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting")
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
       prompt.update_content!(
         messages: [{ "role" => "user", "content" => "Hello {{name}}" }],
         model: "claude-sonnet-4"
@@ -59,7 +58,7 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
 
   describe "DELETE /llm_logs/prompts/:id" do
     it "deletes the prompt and redirects" do
-      prompt = LlmLogs::Prompt.create!(project: "app", slug: "greeting", name: "Greeting")
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
       expect {
         delete "/llm_logs/prompts/#{prompt.id}"
       }.to change(LlmLogs::Prompt, :count).by(-1)

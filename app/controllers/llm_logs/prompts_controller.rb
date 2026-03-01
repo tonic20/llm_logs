@@ -1,7 +1,7 @@
 module LlmLogs
   class PromptsController < ApplicationController
     def index
-      @prompts = Prompt.order(:project, :name).includes(:versions)
+      @prompts = Prompt.order(:name).includes(:versions)
     end
 
     def show
@@ -11,7 +11,7 @@ module LlmLogs
     end
 
     def new
-      @prompt = Prompt.new(project: LlmLogs.default_project)
+      @prompt = Prompt.new
     end
 
     def create
@@ -54,7 +54,7 @@ module LlmLogs
     private
 
     def prompt_params
-      params.require(:prompt).permit(:project, :slug, :name, :description)
+      params.require(:prompt).permit(:slug, :name, :description)
     end
 
     def version_params
