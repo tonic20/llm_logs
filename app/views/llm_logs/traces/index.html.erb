@@ -12,7 +12,7 @@
 
       <select name="status" class="rounded-md border-gray-300 text-sm py-1.5 px-3 bg-white border shadow-sm">
         <option value="">All statuses</option>
-        <% %w[running completed errored].each do |status| %>
+        <% %w[running completed error].each do |status| %>
           <option value="<%= status %>" <%= 'selected' if params[:status] == status %>><%= status %></option>
         <% end %>
       </select>
@@ -45,7 +45,7 @@
           <td class="px-4 py-3 text-sm text-gray-500"><%= trace.project %></td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right"><%= trace.spans.count %></td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right">
-            <%= number_with_delimiter(trace.total_input_tokens + trace.total_output_tokens) %>
+            <%= number_with_delimiter(trace.total_input_tokens) %> &rarr; <%= number_with_delimiter(trace.total_output_tokens) %>
           </td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right">
             <% if trace.total_cost > 0 %>$<%= sprintf('%.4f', trace.total_cost) %><% end %>
@@ -54,7 +54,7 @@
             <% if trace.duration_ms %><%= sprintf('%.0f', trace.duration_ms) %>ms<% end %>
           </td>
           <td class="px-4 py-3 text-sm">
-            <% status_colors = { "running" => "bg-blue-100 text-blue-800", "completed" => "bg-green-100 text-green-800", "errored" => "bg-red-100 text-red-800" } %>
+            <% status_colors = { "running" => "bg-blue-100 text-blue-800", "completed" => "bg-green-100 text-green-800", "error" => "bg-red-100 text-red-800" } %>
             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium <%= status_colors[trace.status] %>">
               <%= trace.status %>
             </span>

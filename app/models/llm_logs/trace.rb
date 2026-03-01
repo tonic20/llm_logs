@@ -3,7 +3,7 @@ module LlmLogs
     has_many :spans, dependent: :destroy
 
     validates :name, presence: true
-    validates :status, presence: true, inclusion: { in: %w[running completed errored] }
+    validates :status, presence: true, inclusion: { in: %w[running completed error] }
     validates :started_at, presence: true
 
     scope :recent, -> { order(started_at: :desc) }

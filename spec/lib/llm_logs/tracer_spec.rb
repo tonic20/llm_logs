@@ -24,7 +24,7 @@ RSpec.describe LlmLogs::Tracer do
       expect(trace.completed_at).to be_present
     end
 
-    it "marks trace as errored on exception" do
+    it "marks trace as error on exception" do
       trace = nil
       expect {
         LlmLogs::Tracer.start_trace("test") do |t|
@@ -33,7 +33,7 @@ RSpec.describe LlmLogs::Tracer do
         end
       }.to raise_error("boom")
 
-      expect(trace.reload.status).to eq("errored")
+      expect(trace.reload.status).to eq("error")
     end
 
     it "restores previous trace context" do

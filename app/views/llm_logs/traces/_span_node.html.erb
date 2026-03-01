@@ -13,7 +13,7 @@
       </div>
       <div class="flex items-center space-x-4 text-xs text-gray-500">
         <% if span.input_tokens || span.output_tokens %>
-          <span><%= span.input_tokens || 0 %> / <%= span.output_tokens || 0 %> tokens</span>
+          <span><%= span.input_tokens || 0 %> &rarr; <%= span.output_tokens || 0 %> tokens</span>
         <% end %>
         <% if span.duration_ms %>
           <span><%= sprintf('%.0f', span.duration_ms) %>ms</span>

@@ -3,7 +3,7 @@
     <div>
       <div class="flex items-center space-x-3">
         <h1 class="text-2xl font-bold text-gray-900"><%= @trace.name %></h1>
-        <% status_colors = { "running" => "bg-blue-100 text-blue-800", "completed" => "bg-green-100 text-green-800", "errored" => "bg-red-100 text-red-800" } %>
+        <% status_colors = { "running" => "bg-blue-100 text-blue-800", "completed" => "bg-green-100 text-green-800", "error" => "bg-red-100 text-red-800" } %>
         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= status_colors[@trace.status] %>">
           <%= @trace.status %>
         </span>
