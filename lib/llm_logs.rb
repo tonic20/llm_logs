@@ -9,6 +9,10 @@ module LlmLogs
   mattr_accessor :auto_instrument, default: true
   mattr_accessor :retention_days, default: 30
 
+  def self.enabled?
+    enabled
+  end
+
   def self.setup
     yield self
   end
