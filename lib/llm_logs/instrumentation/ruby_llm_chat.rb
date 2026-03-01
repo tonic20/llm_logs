@@ -12,6 +12,8 @@ module LlmLogs
           input: messages.map { |m| { role: m.role, content: m.content.to_s } }
         )
 
+        messages_before = messages.size
+
         begin
           result = super(&block)
           span.record_response(result)
@@ -19,6 +21,7 @@ module LlmLogs
           result
         rescue => e
           span.record_error(e)
+          llm_logs_capture_partial_tokens(span, messages_before)
           raise
         ensure
           span.finish
@@ -26,6 +29,18 @@ module LlmLogs
       end
 
       private
+
+      def llm_logs_capture_partial_tokens(span, messages_before)
+        assistant_msg = messages[messages_before..].find { |m| m.role == :assistant }
+        return unless assistant_msg&.input_tokens
+
+        span.input_tokens = assistant_msg.input_tokens
+        span.output_tokens = assistant_msg.output_tokens
+        span.cached_tokens = assistant_msg.cached_tokens
+        span.cost = llm_logs_compute_cost(assistant_msg)
+      rescue StandardError
+        nil
+      end
 
       def llm_logs_compute_cost(message)
         model_info = llm_logs_resolve_pricing_model
