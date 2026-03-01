@@ -53,11 +53,11 @@
         </div>
       <% end %>
 
-      <%= link_to "View details", trace_span_path(span.trace, span), class: "text-xs text-indigo-600 hover:text-indigo-900" %>
+      <%= link_to "View details", trace_span_path(trace, span), class: "text-xs text-indigo-600 hover:text-indigo-900" %>
     </div>
   </details>
 
   <% span.child_spans.order(:started_at).each do |child| %>
-    <%= render partial: "llm_logs/traces/span_node", locals: { span: child, depth: depth + 1 } %>
+    <%= render partial: "llm_logs/traces/span_node", locals: { span: child, depth: depth + 1, trace: trace } %>
   <% end %>
 </div>

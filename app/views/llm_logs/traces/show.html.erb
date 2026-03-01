@@ -56,7 +56,7 @@
   <div class="p-4">
     <% if @root_spans.any? %>
       <% @root_spans.each do |span| %>
-        <%= render partial: "llm_logs/traces/span_node", locals: { span: span, depth: 0 } %>
+        <%= render partial: "llm_logs/traces/span_node", locals: { span: span, depth: 0, trace: @trace } %>
       <% end %>
     <% else %>
       <p class="text-sm text-gray-500">No spans recorded.</p>
