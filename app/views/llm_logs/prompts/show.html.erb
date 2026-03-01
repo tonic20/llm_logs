@@ -1,0 +1,104 @@
+<div class="mb-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900"><%= @prompt.name %></h1>
+      <p class="text-sm text-gray-500 mt-1">
+        <span class="font-mono"><%= @prompt.project %>/<%= @prompt.slug %></span>
+        <% if @prompt.description.present? %>
+          &middot; <%= @prompt.description %>
+        <% end %>
+      </p>
+    </div>
+    <div class="flex items-center space-x-3">
+      <%= link_to "Edit", edit_prompt_path(@prompt), class: "bg-indigo-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-indigo-500" %>
+      <%= button_to "Delete", prompt_path(@prompt), method: :delete, class: "text-sm text-red-600 hover:text-red-900",
+          data: { turbo_confirm: "Delete this prompt and all versions?" } %>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-3 gap-6">
+  <div class="col-span-2 space-y-6">
+    <% if @current_version %>
+      <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+        <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-sm font-medium text-gray-900">Messages (v<%= @current_version.version_number %>)</h2>
+          <% if @current_version.model.present? %>
+            <span class="text-xs text-gray-500">Model: <span class="font-medium"><%= @current_version.model %></span></span>
+          <% end %>
+        </div>
+        <div class="p-4 space-y-3">
+          <% @current_version.messages.each do |msg| %>
+            <div class="rounded-lg p-3 <%= msg['role'] == 'system' ? 'bg-yellow-50' : msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
+              <div class="text-xs font-medium text-gray-500 uppercase mb-1"><%= msg['role'] %></div>
+              <pre class="text-sm whitespace-pre-wrap font-mono"><%= msg['content'] %></pre>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <% if @current_version.model_params.present? && @current_version.model_params.any? %>
+        <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h2 class="text-sm font-medium text-gray-900">Model Parameters</h2>
+          </div>
+          <div class="p-4">
+            <dl class="grid grid-cols-2 gap-2 text-sm">
+              <% @current_version.model_params.each do |key, value| %>
+                <dt class="text-gray-500"><%= key %></dt>
+                <dd class="text-gray-900 font-mono"><%= value %></dd>
+              <% end %>
+            </dl>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @current_version.default_variables.present? && @current_version.default_variables.any? %>
+        <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h2 class="text-sm font-medium text-gray-900">Default Variables</h2>
+          </div>
+          <div class="p-4">
+            <pre class="text-sm bg-gray-50 rounded-lg p-3 font-mono"><%= JSON.pretty_generate(@current_version.default_variables) %></pre>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-8 text-center text-sm text-gray-500">
+        No versions yet. <%= link_to "Edit this prompt", edit_prompt_path(@prompt), class: "text-indigo-600" %> to add content.
+      </div>
+    <% end %>
+  </div>
+
+  <div>
+    <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+      <div class="px-4 py-3 border-b border-gray-200">
+        <h2 class="text-sm font-medium text-gray-900">Version History</h2>
+      </div>
+      <div class="divide-y divide-gray-100">
+        <% @versions.each do |version| %>
+          <div class="px-4 py-3 <%= version == @current_version ? 'bg-indigo-50' : '' %>">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-900">v<%= version.version_number %></span>
+              <span class="text-xs text-gray-500"><%= version.created_at.strftime('%b %d %H:%M') %></span>
+            </div>
+            <% if version.changelog.present? %>
+              <p class="text-xs text-gray-500 mt-1"><%= version.changelog %></p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="mt-4 bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-4">
+      <h3 class="text-sm font-medium text-gray-900 mb-2">SDK Usage</h3>
+      <pre class="text-xs bg-gray-50 rounded p-3 font-mono overflow-x-auto">prompt = LlmLogs::Prompt.load(
+  project: "<%= @prompt.project %>",
+  slug: "<%= @prompt.slug %>"
+)
+params = prompt.build(
+  # your variables here
+)</pre>
+    </div>
+  </div>
+</div>

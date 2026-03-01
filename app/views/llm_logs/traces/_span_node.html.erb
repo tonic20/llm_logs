@@ -1,0 +1,63 @@
+<div class="<%= 'ml-6' if depth > 0 %> mb-2">
+  <details class="group">
+    <summary class="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer">
+      <div class="flex items-center space-x-3">
+        <% type_colors = { "llm" => "bg-purple-100 text-purple-800", "tool" => "bg-amber-100 text-amber-800", "custom" => "bg-gray-100 text-gray-800" } %>
+        <span class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium <%= type_colors[span.span_type] %>">
+          <%= span.span_type %>
+        </span>
+        <span class="text-sm font-medium text-gray-900"><%= span.name %></span>
+        <% if span.model.present? %>
+          <span class="text-xs text-gray-500"><%= span.model %></span>
+        <% end %>
+      </div>
+      <div class="flex items-center space-x-4 text-xs text-gray-500">
+        <% if span.input_tokens || span.output_tokens %>
+          <span><%= span.input_tokens || 0 %> / <%= span.output_tokens || 0 %> tokens</span>
+        <% end %>
+        <% if span.duration_ms %>
+          <span><%= sprintf('%.0f', span.duration_ms) %>ms</span>
+        <% end %>
+        <% if span.status == "error" %>
+          <span class="text-red-600 font-medium">ERROR</span>
+        <% end %>
+      </div>
+    </summary>
+
+    <div class="mt-2 ml-4 space-y-3">
+      <% if span.input.present? %>
+        <div>
+          <h4 class="text-xs font-medium text-gray-500 uppercase mb-1">Input</h4>
+          <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= JSON.pretty_generate(span.input) rescue span.input.to_s %></pre>
+        </div>
+      <% end %>
+
+      <% if span.output.present? %>
+        <div>
+          <h4 class="text-xs font-medium text-gray-500 uppercase mb-1">Output</h4>
+          <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= JSON.pretty_generate(span.output) rescue span.output.to_s %></pre>
+        </div>
+      <% end %>
+
+      <% if span.error_message.present? %>
+        <div>
+          <h4 class="text-xs font-medium text-red-600 uppercase mb-1">Error</h4>
+          <pre class="text-xs bg-red-50 rounded p-3 border border-red-200 text-red-800"><%= span.error_message %></pre>
+        </div>
+      <% end %>
+
+      <% if span.metadata.present? && span.metadata.any? %>
+        <div>
+          <h4 class="text-xs font-medium text-gray-500 uppercase mb-1">Metadata</h4>
+          <pre class="text-xs bg-gray-50 rounded p-3 border"><%= JSON.pretty_generate(span.metadata) %></pre>
+        </div>
+      <% end %>
+
+      <%= link_to "View details", trace_span_path(span.trace, span), class: "text-xs text-indigo-600 hover:text-indigo-900" %>
+    </div>
+  </details>
+
+  <% span.child_spans.order(:started_at).each do |child| %>
+    <%= render partial: "llm_logs/traces/span_node", locals: { span: child, depth: depth + 1 } %>
+  <% end %>
+</div>
