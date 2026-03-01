@@ -1,6 +1,6 @@
 module LlmLogs
   class Span < ApplicationRecord
-    belongs_to :trace
+    belongs_to :trace, counter_cache: true
     belongs_to :parent_span, class_name: "LlmLogs::Span", optional: true
     has_many :child_spans, class_name: "LlmLogs::Span", foreign_key: :parent_span_id, dependent: :nullify
 
