@@ -11,7 +11,7 @@ module LlmLogs
 
     def show
       @trace = Trace.find(params[:id])
-      @root_spans = @trace.root_spans.includes(:child_spans)
+      @root_spans = @trace.root_spans
     end
 
     def destroy
