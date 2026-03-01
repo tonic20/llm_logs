@@ -15,6 +15,7 @@ module LlmLogs
         begin
           result = super(&block)
           span.record_response(result)
+          span.cost = llm_logs_compute_cost(result)
           result
         rescue => e
           span.record_error(e)
@@ -23,6 +24,29 @@ module LlmLogs
           span.finish
         end
       end
+
+      private
+
+      def llm_logs_compute_cost(message)
+        model_info = llm_logs_resolve_pricing_model
+        return unless model_info
+
+        input_price = model_info.input_price_per_million
+        output_price = model_info.output_price_per_million
+        return unless input_price && output_price
+
+        (message.input_tokens.to_f * input_price + message.output_tokens.to_f * output_price) / 1_000_000
+      end
+
+      def llm_logs_resolve_pricing_model
+        return @model if @model&.input_price_per_million
+
+        RubyLLM.models.find(@model.id) if @model&.id
+      rescue StandardError
+        nil
+      end
+
+      public
 
       def execute_tool(tool_call)
         return super unless LlmLogs.enabled?
