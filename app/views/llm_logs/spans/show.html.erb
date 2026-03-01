@@ -1,0 +1,88 @@
+<div class="mb-6">
+  <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+    <%= link_to @trace.name, trace_path(@trace), class: "text-indigo-600 hover:text-indigo-900" %>
+    <span>/</span>
+    <span><%= @span.name %></span>
+  </div>
+
+  <div class="flex items-center space-x-3">
+    <h1 class="text-2xl font-bold text-gray-900"><%= @span.name %></h1>
+    <% type_colors = { "llm" => "bg-purple-100 text-purple-800", "tool" => "bg-amber-100 text-amber-800", "custom" => "bg-gray-100 text-gray-800" } %>
+    <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium <%= type_colors[@span.span_type] %>">
+      <%= @span.span_type %>
+    </span>
+    <% if @span.status == "error" %>
+      <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800">error</span>
+    <% end %>
+  </div>
+</div>
+
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Model</dt>
+    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= @span.model || "—" %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Input Tokens</dt>
+    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@span.input_tokens || 0) %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Output Tokens</dt>
+    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@span.output_tokens || 0) %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Duration</dt>
+    <dd class="text-lg font-semibold text-gray-900 mt-1">
+      <% if @span.duration_ms %><%= sprintf('%.0f', @span.duration_ms) %>ms<% else %>—<% end %>
+    </dd>
+  </div>
+</div>
+
+<% if @span.input.present? %>
+  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 mb-6">
+    <div class="px-4 py-3 border-b border-gray-200">
+      <h2 class="text-sm font-medium text-gray-900">Input Messages</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <% Array(@span.input).each do |msg| %>
+        <div class="rounded-lg p-3 <%= msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
+          <div class="text-xs font-medium text-gray-500 uppercase mb-1"><%= msg['role'] %></div>
+          <pre class="text-sm whitespace-pre-wrap"><%= msg['content'] %></pre>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @span.output.present? %>
+  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 mb-6">
+    <div class="px-4 py-3 border-b border-gray-200">
+      <h2 class="text-sm font-medium text-gray-900">Output</h2>
+    </div>
+    <div class="p-4">
+      <pre class="text-sm bg-green-50 rounded-lg p-3 whitespace-pre-wrap"><%= JSON.pretty_generate(@span.output) rescue @span.output.to_s %></pre>
+    </div>
+  </div>
+<% end %>
+
+<% if @span.error_message.present? %>
+  <div class="bg-white rounded-lg shadow-sm ring-1 ring-red-200 mb-6">
+    <div class="px-4 py-3 border-b border-red-200 bg-red-50">
+      <h2 class="text-sm font-medium text-red-800">Error</h2>
+    </div>
+    <div class="p-4">
+      <pre class="text-sm text-red-800 whitespace-pre-wrap"><%= @span.error_message %></pre>
+    </div>
+  </div>
+<% end %>
+
+<% if @span.metadata.present? && @span.metadata.any? %>
+  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+    <div class="px-4 py-3 border-b border-gray-200">
+      <h2 class="text-sm font-medium text-gray-900">Metadata</h2>
+    </div>
+    <div class="p-4">
+      <pre class="text-sm bg-gray-50 rounded-lg p-3"><%= JSON.pretty_generate(@span.metadata) %></pre>
+    </div>
+  </div>
+<% end %>

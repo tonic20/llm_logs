@@ -1,0 +1,39 @@
+<div class="mb-6">
+  <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+    <%= link_to "Prompts", prompts_path, class: "text-indigo-600 hover:text-indigo-900" %>
+    <span>/</span>
+    <%= link_to @prompt.name, prompt_path(@prompt), class: "text-indigo-600 hover:text-indigo-900" %>
+    <span>/</span>
+    <span>Versions</span>
+  </div>
+  <h1 class="text-2xl font-bold text-gray-900">Version History: <%= @prompt.name %></h1>
+</div>
+
+<div class="space-y-4">
+  <% @versions.each do |version| %>
+    <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center space-x-3">
+          <span class="text-lg font-semibold text-gray-900">v<%= version.version_number %></span>
+          <% if version.model.present? %>
+            <span class="text-xs bg-gray-100 rounded-full px-2 py-0.5 text-gray-600"><%= version.model %></span>
+          <% end %>
+        </div>
+        <span class="text-sm text-gray-500"><%= version.created_at.strftime('%b %d, %Y %H:%M') %></span>
+      </div>
+
+      <% if version.changelog.present? %>
+        <p class="text-sm text-gray-600 mb-3"><%= version.changelog %></p>
+      <% end %>
+
+      <div class="space-y-2">
+        <% version.messages.each do |msg| %>
+          <div class="rounded p-2 text-xs <%= msg['role'] == 'system' ? 'bg-yellow-50' : msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
+            <span class="font-medium text-gray-500 uppercase"><%= msg['role'] %>:</span>
+            <span class="font-mono"><%= truncate(msg['content'], length: 120) %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

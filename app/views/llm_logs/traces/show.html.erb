@@ -1,0 +1,69 @@
+<div class="mb-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="flex items-center space-x-3">
+        <h1 class="text-2xl font-bold text-gray-900"><%= @trace.name %></h1>
+        <% status_colors = { "running" => "bg-blue-100 text-blue-800", "completed" => "bg-green-100 text-green-800", "errored" => "bg-red-100 text-red-800" } %>
+        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= status_colors[@trace.status] %>">
+          <%= @trace.status %>
+        </span>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">
+        <%= @trace.project %> &middot; <%= @trace.started_at.strftime('%b %d, %Y %H:%M:%S') %>
+      </p>
+    </div>
+    <div class="flex items-center space-x-3">
+      <%= link_to "Back to traces", traces_path, class: "text-sm text-gray-600 hover:text-gray-900" %>
+      <%= button_to "Delete", trace_path(@trace), method: :delete, class: "text-sm text-red-600 hover:text-red-900",
+          data: { turbo_confirm: "Delete this trace?" } %>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Spans</dt>
+    <dd class="text-2xl font-semibold text-gray-900 mt-1"><%= @trace.spans.count %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Input Tokens</dt>
+    <dd class="text-2xl font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@trace.total_input_tokens) %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Output Tokens</dt>
+    <dd class="text-2xl font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@trace.total_output_tokens) %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Duration</dt>
+    <dd class="text-2xl font-semibold text-gray-900 mt-1">
+      <% if @trace.duration_ms %><%= sprintf('%.0f', @trace.duration_ms) %>ms<% else %>—<% end %>
+    </dd>
+  </div>
+</div>
+
+<% if @trace.metadata.present? && @trace.metadata.any? %>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5 mb-6">
+    <h3 class="text-sm font-medium text-gray-900 mb-2">Metadata</h3>
+    <dl class="grid grid-cols-2 gap-2 text-sm">
+      <% @trace.metadata.each do |key, value| %>
+        <dt class="text-gray-500"><%= key %></dt>
+        <dd class="text-gray-900"><%= value %></dd>
+      <% end %>
+    </dl>
+  </div>
+<% end %>
+
+<div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+  <div class="px-4 py-3 border-b border-gray-200">
+    <h2 class="text-lg font-medium text-gray-900">Span Tree</h2>
+  </div>
+  <div class="p-4">
+    <% if @root_spans.any? %>
+      <% @root_spans.each do |span| %>
+        <%= render partial: "llm_logs/traces/span_node", locals: { span: span, depth: 0 } %>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-gray-500">No spans recorded.</p>
+    <% end %>
+  </div>
+</div>

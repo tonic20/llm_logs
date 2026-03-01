@@ -1,0 +1,43 @@
+<div class="mb-6">
+  <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+    <%= link_to "Prompts", prompts_path, class: "text-indigo-600 hover:text-indigo-900" %>
+    <span>/</span>
+    <%= link_to @prompt.name, prompt_path(@prompt), class: "text-indigo-600 hover:text-indigo-900" %>
+    <span>/</span>
+    <span>v<%= @version.version_number %></span>
+  </div>
+  <h1 class="text-2xl font-bold text-gray-900"><%= @prompt.name %> — v<%= @version.version_number %></h1>
+  <% if @version.changelog.present? %>
+    <p class="text-sm text-gray-500 mt-1"><%= @version.changelog %></p>
+  <% end %>
+</div>
+
+<div class="space-y-6">
+  <% if @version.model.present? %>
+    <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-4">
+      <h2 class="text-sm font-medium text-gray-900 mb-2">Model: <span class="font-mono"><%= @version.model %></span></h2>
+      <% if @version.model_params.present? && @version.model_params.any? %>
+        <dl class="grid grid-cols-4 gap-2 text-sm">
+          <% @version.model_params.each do |key, value| %>
+            <dt class="text-gray-500"><%= key %></dt>
+            <dd class="text-gray-900 font-mono"><%= value %></dd>
+          <% end %>
+        </dl>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+    <div class="px-4 py-3 border-b border-gray-200">
+      <h2 class="text-sm font-medium text-gray-900">Messages</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <% @version.messages.each do |msg| %>
+        <div class="rounded-lg p-3 <%= msg['role'] == 'system' ? 'bg-yellow-50' : msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
+          <div class="text-xs font-medium text-gray-500 uppercase mb-1"><%= msg['role'] %></div>
+          <pre class="text-sm whitespace-pre-wrap font-mono"><%= msg['content'] %></pre>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
