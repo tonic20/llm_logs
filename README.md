@@ -27,7 +27,8 @@ mount LlmLogs::Engine, at: "/llm_logs"
 ```ruby
 # config/initializers/llm_logs.rb
 LlmLogs.setup do |config|
-  config.default_project = "myapp"
+  config.enabled = true
+  config.auto_instrument = true
 end
 ```
 
@@ -77,14 +78,13 @@ Create prompts with [Mustache](https://mustache.github.io/) templates and auto-v
 
 ```ruby
 prompt = LlmLogs::Prompt.create!(
-  project: "myapp",
   slug: "strategy-analysis",
   name: "Strategy Analysis"
 )
 
 prompt.update_content!(
   messages: [
-    { "role" => "system", "content" => "You analyze trading strategies for {{project}}." },
+    { "role" => "system", "content" => "You analyze trading strategies for {{app_name}}." },
     { "role" => "user", "content" => "Analyze {{strategy_name}} on the {{timeframe}} timeframe." }
   ],
   model: "claude-sonnet-4",
@@ -95,9 +95,9 @@ prompt.update_content!(
 ### Load and Render
 
 ```ruby
-prompt = LlmLogs::Prompt.load(project: "myapp", slug: "strategy-analysis")
+prompt = LlmLogs::Prompt.load("strategy-analysis")
 params = prompt.build(
-  project: "Tradebot",
+  app_name: "Tradebot",
   strategy_name: "Momentum Alpha",
   timeframe: "4h"
 )
@@ -123,7 +123,7 @@ prompt.rollback_to!(1)       # creates new version from v1 content
 
 Browse traces and manage prompts at `/llm_logs`.
 
-**Traces** — list with filtering by project and status, drill into hierarchical span trees with collapsible input/output.
+**Traces** — list with filtering by status, drill into hierarchical span trees with collapsible input/output.
 
 **Prompts** — CRUD with Mustache template editor, model configuration, and version history.
 
@@ -131,9 +131,8 @@ Browse traces and manage prompts at `/llm_logs`.
 
 ```ruby
 LlmLogs.setup do |config|
-  config.default_project = "myapp"    # default project for traces/prompts
-  config.auto_instrument = true       # auto-prepend on RubyLLM::Chat
   config.enabled = true               # master switch for logging
+  config.auto_instrument = true       # auto-prepend on RubyLLM::Chat
   config.retention_days = 30          # for future cleanup job
 end
 ```
