@@ -39,6 +39,44 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}")
       expect(prompt.current_version.messages.size).to eq(2)
     end
+
+    it "coerces model_params from form strings to numeric types" do
+      post "/llm_logs/prompts", params: {
+        prompt: {
+          slug: "numeric-test",
+          name: "Numeric Test",
+          model: "claude-sonnet-4",
+          model_params: { temperature: "0.7", max_tokens: "1024" },
+          messages: {
+            "0" => { role: "user", content: "Hello" }
+          }
+        }
+      }
+
+      version = LlmLogs::Prompt.last.current_version
+      expect(version.model_params["temperature"]).to eq(0.7)
+      expect(version.model_params["temperature"]).to be_a(Float)
+      expect(version.model_params["max_tokens"]).to eq(1024)
+      expect(version.model_params["max_tokens"]).to be_a(Integer)
+    end
+
+    it "drops blank model_params values from form submissions" do
+      post "/llm_logs/prompts", params: {
+        prompt: {
+          slug: "blank-test",
+          name: "Blank Test",
+          model: "claude-sonnet-4",
+          model_params: { temperature: "0", max_tokens: "" },
+          messages: {
+            "0" => { role: "user", content: "Hello" }
+          }
+        }
+      }
+
+      version = LlmLogs::Prompt.last.current_version
+      expect(version.model_params["temperature"]).to eq(0)
+      expect(version.model_params).not_to have_key("max_tokens")
+    end
   end
 
   describe "GET /llm_logs/prompts/:id" do
@@ -53,6 +91,35 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Greeting")
       expect(response.body).to include("Hello {{name}}")
+    end
+  end
+
+  describe "PATCH /llm_logs/prompts/:id" do
+    it "coerces model_params when updating an existing prompt" do
+      prompt = LlmLogs::Prompt.create!(slug: "updatable", name: "Updatable")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "v1" }],
+        model_params: { "temperature" => 0.5 }
+      )
+
+      patch "/llm_logs/prompts/#{prompt.id}", params: {
+        prompt: {
+          slug: "updatable",
+          name: "Updatable",
+          model_params: { temperature: "0.3", max_tokens: "2048" },
+          messages: {
+            "0" => { role: "user", content: "v2" }
+          }
+        }
+      }
+
+      prompt.reload
+      version = prompt.current_version
+      expect(version.version_number).to eq(2)
+      expect(version.model_params["temperature"]).to eq(0.3)
+      expect(version.model_params["temperature"]).to be_a(Float)
+      expect(version.model_params["max_tokens"]).to eq(2048)
+      expect(version.model_params["max_tokens"]).to be_a(Integer)
     end
   end
 

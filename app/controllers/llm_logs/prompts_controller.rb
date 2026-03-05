@@ -63,9 +63,21 @@ module LlmLogs
       {
         messages: messages,
         model: raw[:model],
-        model_params: raw[:model_params]&.to_h || {},
+        model_params: coerce_model_params(raw[:model_params]&.to_h || {}),
         changelog: raw[:changelog]
       }.compact_blank
+    end
+
+    def coerce_model_params(params_hash)
+      params_hash.each_with_object({}) do |(key, value), result|
+        next if value.blank?
+
+        result[key] = case value
+        when /\A\d+\z/ then value.to_i
+        when /\A\d+\.\d+\z/ then value.to_f
+        else value
+        end
+      end
     end
 
     def parse_messages
