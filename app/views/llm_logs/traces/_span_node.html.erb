@@ -26,14 +26,14 @@
       <% if span.input.present? %>
         <div>
           <h4 class="text-xs font-medium text-gray-500 uppercase mb-1">Input</h4>
-          <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= JSON.pretty_generate(span.input) rescue span.input.to_s %></pre>
+          <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= pretty_json(span.input) %></pre>
         </div>
       <% end %>
 
       <% if span.output.present? %>
         <div>
           <h4 class="text-xs font-medium text-gray-500 uppercase mb-1">Output</h4>
-          <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= JSON.pretty_generate(span.output) rescue span.output.to_s %></pre>
+          <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= pretty_json(span.output) %></pre>
         </div>
       <% end %>
 

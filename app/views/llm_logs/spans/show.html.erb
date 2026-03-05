@@ -60,7 +60,7 @@
       <h2 class="text-sm font-medium text-gray-900">Output</h2>
     </div>
     <div class="p-4">
-      <pre class="text-sm bg-green-50 rounded-lg p-3 whitespace-pre-wrap"><%= JSON.pretty_generate(@span.output) rescue @span.output.to_s %></pre>
+      <pre class="text-sm bg-green-50 rounded-lg p-3 whitespace-pre-wrap"><%= pretty_json(@span.output) %></pre>
     </div>
   </div>
 <% end %>
