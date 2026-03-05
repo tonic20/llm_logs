@@ -15,9 +15,7 @@
         <% if span.input_tokens || span.output_tokens %>
           <span><%= span.input_tokens || 0 %> &rarr; <%= span.output_tokens || 0 %> tokens</span>
         <% end %>
-        <% if span.duration_ms %>
-          <span><%= sprintf('%.0f', span.duration_ms) %>ms</span>
-        <% end %>
+        <span><%= format_duration_ms(span.duration_ms) %></span>
         <% if span.status == "error" %>
           <span class="text-red-600 font-medium">ERROR</span>
         <% end %>
