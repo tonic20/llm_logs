@@ -1,3 +1,4 @@
+require "kaminari"
 require "llm_logs/version"
 require "llm_logs/engine"
 require "llm_logs/tracer"

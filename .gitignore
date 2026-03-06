@@ -68,3 +68,6 @@ yarn-debug.log*
 !/storage/.keep
 /public/uploads
 spec/dummy/log/
+
+# Claude Code
+.claude/

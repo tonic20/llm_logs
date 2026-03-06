@@ -1,7 +1,7 @@
 module LlmLogs
   class PromptsController < ApplicationController
     def index
-      @prompts = Prompt.order(:name).includes(:versions)
+      @prompts = Prompt.order(:name).includes(:versions).page(params[:page]).per(25)
     end
 
     def show
