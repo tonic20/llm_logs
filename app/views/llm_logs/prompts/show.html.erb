@@ -93,9 +93,11 @@
     <div class="mt-4 bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-4">
       <h3 class="text-sm font-medium text-gray-900 mb-2">SDK Usage</h3>
       <pre class="text-xs bg-gray-50 rounded p-3 font-mono overflow-x-auto">prompt = LlmLogs::Prompt.load("<%= @prompt.slug %>")
-params = prompt.build(
-  # your variables here
-)</pre>
+params = prompt.build(<% if @current_version&.variables&.any? %>
+<%= @current_version.variables.map { |v| "  #{v}: \"\"" }.join(",\n") %>
+<% else %>
+  # no variables
+<% end %>)</pre>
     </div>
   </div>
 </div>

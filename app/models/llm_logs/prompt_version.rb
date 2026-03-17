@@ -7,6 +7,10 @@ module LlmLogs
     validates :version_number, presence: true, uniqueness: { scope: :prompt_id }
     validates :messages, presence: true
 
+    def variables
+      messages.flat_map { |msg| msg["content"].to_s.scan(/\{\{[#^]?([^\/}]+)\}\}/) }.flatten.uniq.sort
+    end
+
     def render(variables = {})
       merged = (default_variables || {}).merge(variables.stringify_keys)
 
