@@ -20,6 +20,15 @@ module LlmLogs
       )
     end
 
+    def fail!
+      rollup_stats!
+      update!(
+        status: "error",
+        completed_at: Time.current,
+        duration_ms: (Time.current - started_at) * 1000
+      )
+    end
+
     def root_spans
       spans.where(parent_span_id: nil).order(:started_at)
     end
@@ -29,6 +38,7 @@ module LlmLogs
     def rollup_stats!
       self.total_input_tokens = spans.sum(:input_tokens)
       self.total_output_tokens = spans.sum(:output_tokens)
+      self.total_cached_tokens = spans.sum(:cached_tokens)
       self.total_cost = spans.sum(:cost)
     end
   end

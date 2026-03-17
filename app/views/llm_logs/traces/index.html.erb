@@ -37,6 +37,9 @@
           <td class="px-4 py-3 text-sm text-gray-500 text-right"><%= trace.spans_count %></td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right">
             <%= number_with_delimiter(trace.total_input_tokens) %> &rarr; <%= number_with_delimiter(trace.total_output_tokens) %>
+            <% if trace.total_cached_tokens > 0 %>
+              <br><span class="text-xs text-green-600"><%= number_with_delimiter(trace.total_cached_tokens) %> cached</span>
+            <% end %>
           </td>
           <td class="px-4 py-3 text-sm text-gray-500 text-right">
             <% if trace.total_cost > 0 %>$<%= sprintf('%.4f', trace.total_cost) %><% end %>

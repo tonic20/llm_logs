@@ -16,7 +16,7 @@
   </div>
 </div>
 
-<div class="grid grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-5 gap-4 mb-6">
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Spans</dt>
     <dd class="text-2xl font-semibold text-gray-900 mt-1"><%= @trace.spans.count %></dd>
@@ -28,6 +28,13 @@
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Output Tokens</dt>
     <dd class="text-2xl font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@trace.total_output_tokens) %></dd>
+  </div>
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Cached Tokens</dt>
+    <dd class="text-2xl font-semibold text-green-600 mt-1"><%= number_with_delimiter(@trace.total_cached_tokens) %></dd>
+    <% if @trace.total_input_tokens > 0 && @trace.total_cached_tokens > 0 %>
+      <dd class="text-xs text-green-600 mt-0.5"><%= (@trace.total_cached_tokens.to_f / @trace.total_input_tokens * 100).round %>% of input</dd>
+    <% end %>
   </div>
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Duration</dt>

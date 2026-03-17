@@ -24,7 +24,7 @@ module LlmLogs
       begin
         yield trace
       rescue => e
-        trace.update!(status: "error")
+        trace.fail!
         raise
       ensure
         trace.complete! if trace.status == "running"
