@@ -9,7 +9,7 @@ module LlmLogs
           span_type: "llm",
           model: @model&.id,
           provider: @model&.provider,
-          input: messages.map { |m| { role: m.role, content: m.content.to_s } }
+          input: messages.map { |m| { role: m.role, content: llm_logs_serialize_content(m.content) } }
         )
 
         messages_before = messages.size
@@ -29,6 +29,20 @@ module LlmLogs
       end
 
       private
+
+      def llm_logs_serialize_content(content)
+        content.is_a?(Hash) || content.is_a?(Array) ? content.to_json : content.to_s
+      end
+
+      def llm_logs_serialize_tool_result(result)
+        if result.is_a?(Hash)
+          result
+        elsif defined?(RubyLLM::Tool::Halt) && result.is_a?(RubyLLM::Tool::Halt)
+          { halted: result.message }
+        else
+          { result: result.to_s }
+        end
+      end
 
       def llm_logs_capture_partial_tokens(span, messages_before)
         assistant_msg = messages[messages_before..].find { |m| m.role == :assistant }
@@ -69,12 +83,17 @@ module LlmLogs
         span = LlmLogs::Tracer.start_span(
           name: "tool.#{tool_call.name}",
           span_type: "tool",
-          metadata: { tool_name: tool_call.name, arguments: tool_call.arguments }
+          input: tool_call.arguments,
+          metadata: { tool_name: tool_call.name }
         )
 
         begin
           result = super
+          span.output = llm_logs_serialize_tool_result(result)
           span.set_attribute("tool.halted", true) if defined?(RubyLLM::Tool::Halt) && result.is_a?(RubyLLM::Tool::Halt)
+          # Convert hash/array results to JSON so RubyLLM stores clean JSON
+          # in message content, not Ruby hash syntax from Hash#to_s
+          result = result.to_json if result.is_a?(Hash) || result.is_a?(Array)
           result
         rescue => e
           span.record_error(e)

@@ -74,6 +74,7 @@ ActiveRecord::Schema[8.1].define(version: 6) do
     t.datetime "started_at", null: false
     t.string "status", default: "running", null: false
     t.decimal "total_cost", precision: 10, scale: 6, default: "0.0"
+    t.integer "total_cached_tokens", default: 0, null: false
     t.integer "total_input_tokens", default: 0
     t.integer "total_output_tokens", default: 0
     t.datetime "updated_at", null: false
