@@ -20,8 +20,10 @@
             <%= link_to prompt.name, prompt_path(prompt), class: "text-indigo-600 hover:text-indigo-900 font-medium" %>
           </td>
           <td class="px-4 py-3 text-sm text-gray-500 font-mono"><%= prompt.slug %></td>
-          <td class="px-4 py-3 text-sm text-gray-500 text-right">
-            <% if prompt.versions.any? %>v<%= prompt.versions.maximum(:version_number) %><% else %>—<% end %>
+          <td class="px-4 py-3 text-sm text-right">
+            <% if prompt.versions.any? %>
+              <%= link_to "v#{prompt.versions.maximum(:version_number)}", prompt_versions_path(prompt), class: "text-indigo-600 hover:text-indigo-900" %>
+            <% else %>—<% end %>
           </td>
           <td class="px-4 py-3 text-sm text-gray-500"><%= prompt.updated_at.strftime('%b %d %H:%M') %></td>
         </tr>

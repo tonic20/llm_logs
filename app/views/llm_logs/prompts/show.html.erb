@@ -72,12 +72,13 @@
 
   <div>
     <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
-      <div class="px-4 py-3 border-b border-gray-200">
+      <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h2 class="text-sm font-medium text-gray-900">Version History</h2>
+        <%= link_to "View all", prompt_versions_path(@prompt), class: "text-xs text-indigo-600 hover:text-indigo-900" %>
       </div>
       <div class="divide-y divide-gray-100">
         <% @versions.each do |version| %>
-          <div class="px-4 py-3 <%= version == @current_version ? 'bg-indigo-50' : '' %>">
+          <%= link_to prompt_version_path(@prompt, version), class: "block px-4 py-3 #{version == @current_version ? 'bg-indigo-50' : 'hover:bg-gray-50'}" do %>
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-900">v<%= version.version_number %></span>
               <span class="text-xs text-gray-500"><%= version.created_at.strftime('%b %d %H:%M') %></span>
@@ -85,7 +86,7 @@
             <% if version.changelog.present? %>
               <p class="text-xs text-gray-500 mt-1"><%= version.changelog %></p>
             <% end %>
-          </div>
+          <% end %>
         <% end %>
       </div>
     </div>

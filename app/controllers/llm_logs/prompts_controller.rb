@@ -7,7 +7,7 @@ module LlmLogs
     def show
       @prompt = Prompt.find(params[:id])
       @current_version = @prompt.current_version
-      @versions = @prompt.versions.order(version_number: :desc)
+      @versions = @prompt.versions.order(version_number: :desc).limit(5)
     end
 
     def new
