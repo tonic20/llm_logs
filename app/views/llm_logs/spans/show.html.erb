@@ -48,14 +48,18 @@
 <% if @span.input.present? %>
   <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 mb-6">
     <div class="px-4 py-3 border-b border-gray-200">
-      <h2 class="text-sm font-medium text-gray-900">Input Messages</h2>
+      <h2 class="text-sm font-medium text-gray-900">Input<%= @span.input.is_a?(Array) ? " Messages" : "" %></h2>
     </div>
     <div class="p-4 space-y-3">
-      <% Array(@span.input).each do |msg| %>
-        <div class="rounded-lg p-3 <%= msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
-          <div class="text-xs font-medium text-gray-500 uppercase mb-1"><%= msg['role'] %></div>
-          <pre class="text-sm whitespace-pre-wrap"><%= msg['content'] %></pre>
-        </div>
+      <% if @span.input.is_a?(Array) %>
+        <% @span.input.each do |msg| %>
+          <div class="rounded-lg p-3 <%= msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
+            <div class="text-xs font-medium text-gray-500 uppercase mb-1"><%= msg['role'] %></div>
+            <pre class="text-sm whitespace-pre-wrap"><%= msg['content'] %></pre>
+          </div>
+        <% end %>
+      <% else %>
+        <pre class="text-sm bg-gray-50 rounded-lg p-3 whitespace-pre-wrap"><%= pretty_json(@span.input) %></pre>
       <% end %>
     </div>
   </div>
