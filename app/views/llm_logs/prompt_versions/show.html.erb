@@ -10,6 +10,11 @@
   <% if @version.changelog.present? %>
     <p class="text-sm text-gray-500 mt-1"><%= @version.changelog %></p>
   <% end %>
+  <p class="text-sm text-gray-500 mt-1">
+    <%= link_to pluralize(@version.traces.count, "trace"),
+      traces_path(prompt_version_id: @version.id),
+      class: "text-indigo-600 hover:text-indigo-900" %>
+  </p>
 </div>
 
 <div class="space-y-6">

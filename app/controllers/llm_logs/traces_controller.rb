@@ -3,6 +3,10 @@ module LlmLogs
     def index
       @traces = Trace.recent
       @traces = @traces.by_status(params[:status]) if params[:status].present?
+      if params[:prompt_version_id].present?
+        @traces = @traces.where(prompt_version_id: params[:prompt_version_id])
+        @filter_version = PromptVersion.find_by(id: params[:prompt_version_id])
+      end
       @traces = @traces.page(params[:page]).per(50)
     end
 

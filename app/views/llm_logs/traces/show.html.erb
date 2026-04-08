@@ -11,6 +11,13 @@
       <p class="text-sm text-gray-500 mt-1">
         <%= @trace.started_at.strftime('%b %d, %Y %H:%M:%S') %>
       </p>
+      <% if @trace.prompt_version.present? %>
+        <p class="text-sm text-gray-500 mt-1">
+          Prompt: <%= link_to "#{@trace.prompt_version.prompt.name} v#{@trace.prompt_version.version_number}",
+            prompt_version_path(@trace.prompt_version.prompt, @trace.prompt_version),
+            class: "text-indigo-600 hover:text-indigo-900" %>
+        </p>
+      <% end %>
     </div>
     <%= link_to "Back to traces", traces_path, class: "text-sm text-gray-600 hover:text-gray-900" %>
   </div>

@@ -1,5 +1,11 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-bold text-gray-900">Traces</h1>
+  <% if @filter_version %>
+    <p class="text-sm text-gray-500">
+      Filtering by prompt: <span class="font-medium"><%= @filter_version.prompt.name %> v<%= @filter_version.version_number %></span>
+      &middot; <%= link_to "Clear filter", traces_path, class: "text-indigo-600 hover:text-indigo-900" %>
+    </p>
+  <% end %>
 
   <div class="flex items-center space-x-3">
     <%= form_tag traces_path, method: :get, class: "flex items-center space-x-2" do %>

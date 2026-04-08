@@ -24,6 +24,18 @@ RSpec.describe "LlmLogs::PromptVersions", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("v1 content")
     end
+
+    it "shows trace count when version has linked traces" do
+      version = prompt.version(1)
+      LlmLogs::Trace.create!(
+        name: "test", started_at: Time.current, status: "completed",
+        prompt_version: version
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}/versions/#{version.id}"
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("1 trace")
+    end
   end
 
   describe "POST /llm_logs/prompts/:prompt_id/versions/:id/restore" do

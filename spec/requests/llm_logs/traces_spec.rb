@@ -37,6 +37,26 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("test_trace")
     end
+
+    it "filters traces by prompt_version_id and shows filter banner" do
+      prompt = LlmLogs::Prompt.create!(slug: "test", name: "Test Prompt")
+      prompt.update_content!(messages: [{ "role" => "user", "content" => "Hello" }])
+      version = prompt.current_version
+      trace.update!(prompt_version: version)
+
+      other_trace = LlmLogs::Trace.create!(
+        name: "other_trace", status: "completed",
+        started_at: Time.current
+      )
+
+      get "/llm_logs", params: { prompt_version_id: version.id }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("test_trace")
+      expect(response.body).not_to include("other_trace")
+      expect(response.body).to include("Filtering by prompt:")
+      expect(response.body).to include("Test Prompt")
+      expect(response.body).to include("Clear filter")
+    end
   end
 
   describe "GET /llm_logs/traces/:id" do
@@ -46,6 +66,18 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       expect(response.body).to include("test_trace")
       expect(response.body).to include("chat.complete")
       expect(response.body).to include("claude-sonnet-4")
+    end
+
+    it "shows prompt version link when present" do
+      prompt = LlmLogs::Prompt.create!(slug: "test", name: "Test Prompt")
+      prompt.update_content!(messages: [{ "role" => "user", "content" => "Hello" }])
+      version = prompt.current_version
+      trace.update!(prompt_version: version)
+
+      get "/llm_logs/traces/#{trace.id}"
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Test Prompt")
+      expect(response.body).to include("v1")
     end
   end
 
