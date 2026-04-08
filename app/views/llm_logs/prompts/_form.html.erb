@@ -1,32 +1,31 @@
 <%= form_with(model: prompt, url: prompt.persisted? ? prompt_path(prompt) : prompts_path, class: "space-y-6") do |f| %>
-  <% if prompt.errors.any? %>
-    <div class="rounded-md bg-red-50 p-4 border border-red-200">
-      <ul class="text-sm text-red-800 list-disc pl-4">
-        <% prompt.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
   <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6 space-y-4">
     <h2 class="text-lg font-medium text-gray-900">Prompt Details</h2>
 
     <div class="grid grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-        <%= f.text_field :slug, class: "w-full rounded-md border-gray-300 shadow-sm text-sm px-3 py-2 border",
+        <%= f.text_field :slug, class: "w-full rounded-md shadow-sm text-sm px-3 py-2 border #{prompt.errors[:slug].any? ? 'border-red-500' : 'border-gray-300'}",
             placeholder: "e.g. strategy-analysis" %>
+        <% prompt.errors[:slug].each do |error| %>
+          <p class="mt-1 text-sm text-red-600"><%= error %></p>
+        <% end %>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-        <%= f.text_field :name, class: "w-full rounded-md border-gray-300 shadow-sm text-sm px-3 py-2 border" %>
+        <%= f.text_field :name, class: "w-full rounded-md shadow-sm text-sm px-3 py-2 border #{prompt.errors[:name].any? ? 'border-red-500' : 'border-gray-300'}" %>
+        <% prompt.errors[:name].each do |error| %>
+          <p class="mt-1 text-sm text-red-600"><%= error %></p>
+        <% end %>
       </div>
     </div>
 
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-      <%= f.text_area :description, rows: 2, class: "w-full rounded-md border-gray-300 shadow-sm text-sm px-3 py-2 border" %>
+      <%= f.text_area :description, rows: 2, class: "w-full rounded-md shadow-sm text-sm px-3 py-2 border #{prompt.errors[:description].any? ? 'border-red-500' : 'border-gray-300'}" %>
+      <% prompt.errors[:description].each do |error| %>
+        <p class="mt-1 text-sm text-red-600"><%= error %></p>
+      <% end %>
     </div>
   </div>
 

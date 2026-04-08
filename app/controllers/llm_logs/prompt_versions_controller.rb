@@ -50,8 +50,8 @@ module LlmLogs
         msg_a = @version_a.messages[i]
         msg_b = @version_b.messages[i]
         role = (msg_a || msg_b)["role"]
-        content_a = ERB::Util.html_escape(msg_a&.dig("content") || "")
-        content_b = ERB::Util.html_escape(msg_b&.dig("content") || "")
+        content_a = (msg_a&.dig("content") || "").gsub("\r\n", "\n")
+        content_b = (msg_b&.dig("content") || "").gsub("\r\n", "\n")
         diff_html = Diffy::SplitDiff.new(content_a, content_b, format: :html_simple)
         { role: role, left: diff_html.left, right: diff_html.right }
       end

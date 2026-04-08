@@ -12,8 +12,11 @@
 </div>
 
 <style>
-  .diff del { background-color: #fecaca; text-decoration: none; }
-  .diff ins { background-color: #bbf7d0; text-decoration: none; }
+  .diff ul { list-style: none; margin: 0; padding: 0; }
+  .diff li { min-height: 1.25em; }
+  .diff li.del { background-color: #fecaca; }
+  .diff li.ins { background-color: #bbf7d0; }
+  .diff del, .diff ins { text-decoration: none; }
   .diff pre { white-space: pre-wrap; word-wrap: break-word; font-size: 0.875rem; }
 </style>
 
