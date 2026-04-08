@@ -55,4 +55,39 @@ RSpec.describe "LlmLogs::PromptVersions", type: :request do
       expect(new_current.messages.first["content"]).to eq("v2 content")
     end
   end
+
+  describe "DELETE /llm_logs/prompts/:prompt_id/versions/:id" do
+    it "deletes a non-current version" do
+      version_1 = prompt.version(1)
+
+      expect {
+        delete "/llm_logs/prompts/#{prompt.id}/versions/#{version_1.id}"
+      }.to change(LlmLogs::PromptVersion, :count).by(-1)
+
+      expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}/versions")
+    end
+
+    it "prevents deleting the current version" do
+      current = prompt.current_version
+
+      expect {
+        delete "/llm_logs/prompts/#{prompt.id}/versions/#{current.id}"
+      }.not_to change(LlmLogs::PromptVersion, :count)
+
+      expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}/versions")
+      follow_redirect!
+      expect(response.body).to include("Cannot delete the current active version")
+    end
+
+    it "nullifies linked traces when version is deleted" do
+      version_1 = prompt.version(1)
+      trace = LlmLogs::Trace.create!(
+        name: "test", started_at: Time.current, status: "completed",
+        prompt_version: version_1
+      )
+
+      delete "/llm_logs/prompts/#{prompt.id}/versions/#{version_1.id}"
+      expect(trace.reload.prompt_version_id).to be_nil
+    end
+  end
 end
