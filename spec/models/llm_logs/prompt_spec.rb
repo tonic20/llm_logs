@@ -71,6 +71,37 @@ RSpec.describe LlmLogs::Prompt do
       empty_prompt = LlmLogs::Prompt.create!(slug: "empty", name: "Empty")
       expect { empty_prompt.build }.to raise_error(RuntimeError, /No versions exist/)
     end
+
+    it "auto-captures prompt version on the active trace" do
+      trace = nil
+      LlmLogs::Tracer.start_trace("test") do |t|
+        trace = t
+        prompt.build(name: "Alice", project: "Tradebot")
+      end
+
+      expect(trace.reload.prompt_version).to eq(prompt.current_version)
+    end
+
+    it "does not overwrite prompt_version if already set" do
+      other_prompt = LlmLogs::Prompt.create!(slug: "other", name: "Other")
+      other_prompt.update_content!(messages: [{ "role" => "user", "content" => "Other" }])
+      other_version = other_prompt.current_version
+
+      trace = nil
+      LlmLogs::Tracer.start_trace("test") do |t|
+        trace = t
+        trace.update!(prompt_version: other_version)
+        prompt.build(name: "Alice", project: "Tradebot")
+      end
+
+      expect(trace.reload.prompt_version).to eq(other_version)
+    end
+
+    it "does not fail when no trace is active" do
+      Thread.current[:llm_logs_trace] = nil
+      result = prompt.build(name: "Alice", project: "Tradebot")
+      expect(result[:messages]).to be_present
+    end
   end
 
   describe "#version" do

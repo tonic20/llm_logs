@@ -21,6 +21,11 @@ module LlmLogs
       ver = current_version
       raise "No versions exist for prompt '#{slug}'" unless ver
 
+      trace = LlmLogs::Tracer.current_trace
+      if trace && trace.prompt_version_id.nil?
+        trace.update_column(:prompt_version_id, ver.id)
+      end
+
       ver.render(variables)
     end
 
