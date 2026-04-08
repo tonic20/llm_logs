@@ -90,4 +90,36 @@ RSpec.describe "LlmLogs::PromptVersions", type: :request do
       expect(trace.reload.prompt_version_id).to be_nil
     end
   end
+
+  describe "GET /llm_logs/prompts/:prompt_id/versions/compare" do
+    it "renders a side-by-side diff of two versions" do
+      get "/llm_logs/prompts/#{prompt.id}/versions/compare", params: { a: 1, b: 2 }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("v1")
+      expect(response.body).to include("v2")
+      expect(response.body).to include("v1 content")
+      expect(response.body).to include("v2 content")
+    end
+
+    it "redirects when a param is missing" do
+      get "/llm_logs/prompts/#{prompt.id}/versions/compare", params: { a: 1 }
+      expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}/versions")
+      follow_redirect!
+      expect(response.body).to include("Select two different versions")
+    end
+
+    it "redirects when both params are the same" do
+      get "/llm_logs/prompts/#{prompt.id}/versions/compare", params: { a: 1, b: 1 }
+      expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}/versions")
+      follow_redirect!
+      expect(response.body).to include("Select two different versions")
+    end
+
+    it "redirects when a version is not found" do
+      get "/llm_logs/prompts/#{prompt.id}/versions/compare", params: { a: 1, b: 999 }
+      expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}/versions")
+      follow_redirect!
+      expect(response.body).to include("Version not found")
+    end
+  end
 end
