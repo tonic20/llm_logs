@@ -1,24 +1,24 @@
+require "diffy"
+
 module LlmLogs
   class PromptVersionsController < ApplicationController
+    before_action :set_prompt
+
     def index
-      @prompt = Prompt.find(params[:prompt_id])
       @versions = @prompt.versions.order(version_number: :desc)
     end
 
     def show
-      @prompt = Prompt.find(params[:prompt_id])
       @version = @prompt.versions.find(params[:id])
     end
 
     def restore
-      @prompt = Prompt.find(params[:prompt_id])
       version = @prompt.versions.find(params[:id])
       @prompt.rollback_to!(version.version_number)
       redirect_to prompt_path(@prompt), notice: "Restored to version #{version.version_number}."
     end
 
     def destroy
-      @prompt = Prompt.find(params[:prompt_id])
       version = @prompt.versions.find(params[:id])
 
       if version == @prompt.current_version
@@ -31,7 +31,6 @@ module LlmLogs
     end
 
     def compare
-      @prompt = Prompt.find(params[:prompt_id])
 
       if params[:a].blank? || params[:b].blank? || params[:a] == params[:b]
         redirect_to prompt_versions_path(@prompt), alert: "Select two different versions to compare."
@@ -46,7 +45,6 @@ module LlmLogs
         return
       end
 
-      require "diffy"
       max_messages = [@version_a.messages.size, @version_b.messages.size].max
       @diffs = (0...max_messages).map do |i|
         msg_a = @version_a.messages[i]
@@ -57,6 +55,12 @@ module LlmLogs
         diff_html = Diffy::SplitDiff.new(content_a, content_b, format: :html_simple)
         { role: role, left: diff_html.left, right: diff_html.right }
       end
+    end
+
+    private
+
+    def set_prompt
+      @prompt = Prompt.find(params[:prompt_id])
     end
   end
 end

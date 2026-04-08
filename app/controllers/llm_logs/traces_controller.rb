@@ -11,7 +11,7 @@ module LlmLogs
     end
 
     def show
-      @trace = Trace.find(params[:id])
+      @trace = Trace.includes(prompt_version: :prompt).find(params[:id])
       @root_spans = @trace.root_spans
     end
 
