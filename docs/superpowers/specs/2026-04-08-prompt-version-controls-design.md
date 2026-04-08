@@ -82,7 +82,7 @@ end
 ### Delete prompt (enhancement)
 
 - Already exists in `PromptsController#destroy`
-- Update `data-turbo-confirm` copy to: "Are you sure you want to delete this prompt?"
+- Keep existing `data-turbo-confirm` copy: "Delete this prompt and all versions?" (already descriptive about cascade)
 - Cascade via `dependent: :destroy` already handles versions
 
 ### "Current Version" badge
@@ -95,7 +95,7 @@ end
 ### UI flow
 
 1. Version history page: each version row gets a checkbox with the version's `version_number` as value
-2. Stimulus `compare-controller` tracks checked boxes:
+2. Inline vanilla JS `<script>` in the version index view tracks checked boxes (the gem has no JS build pipeline or Stimulus dependency, so inline is appropriate for this simple logic):
    - Exactly 2 checked: "Compare" button appears, showing "Compare vX vs vY"
    - Fewer or more than 2 checked: button hidden/disabled (checking a 3rd box hides the button)
 3. Clicking "Compare" navigates to compare route with version_numbers as query params (`?a=X&b=Y`). The lower version_number is always `a` (left side) regardless of check order
@@ -146,12 +146,15 @@ The version history page does not paginate. Prompts are expected to have tens of
 
 Authorization is out of scope for this feature. The gem's existing controllers have no auth checks — host apps are expected to restrict access to the mounted engine via routing constraints or middleware (e.g., `authenticate :admin_user` in the mount block). The new destructive actions (delete, restore) inherit whatever access control the host app applies to the engine mount point.
 
+### Flash alert rendering
+
+The existing layout only renders `notice` (green) flash messages. Add `alert` flash rendering (red styling) to support error messages from delete-current-version guard and compare validation.
+
 ## Files changed
 
 ### New files
 - `db/migrate/005_add_prompt_version_to_traces.rb`
 - `app/views/llm_logs/prompt_versions/compare.html.erb`
-- `app/javascript/llm_logs/compare_controller.js` (Stimulus)
 
 ### Modified files
 - `llm_logs.gemspec` — add `diffy` dependency
@@ -165,3 +168,4 @@ Authorization is out of scope for this feature. The gem's existing controllers h
 - `app/views/llm_logs/prompt_versions/show.html.erb` — trace count link
 - `app/views/llm_logs/prompts/show.html.erb` — current badge in sidebar, update confirm copy
 - `app/views/llm_logs/traces/show.html.erb` — prompt version link
+- `app/views/layouts/llm_logs/application.html.erb` — add alert flash rendering
