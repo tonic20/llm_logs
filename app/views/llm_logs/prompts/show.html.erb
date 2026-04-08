@@ -81,6 +81,9 @@
           <%= link_to prompt_version_path(@prompt, version), class: "block px-4 py-3 #{version == @current_version ? 'bg-indigo-50' : 'hover:bg-gray-50'}" do %>
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-900">v<%= version.version_number %></span>
+              <% if version == @current_version %>
+                <span class="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-800">Current</span>
+              <% end %>
               <span class="text-xs text-gray-500"><%= version.created_at.strftime('%b %d %H:%M') %></span>
             </div>
             <% if version.changelog.present? %>
