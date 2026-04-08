@@ -1,6 +1,7 @@
 module LlmLogs
   class Trace < ApplicationRecord
     has_many :spans, dependent: :destroy
+    belongs_to :prompt_version, class_name: "LlmLogs::PromptVersion", optional: true
 
     validates :name, presence: true
     validates :status, presence: true, inclusion: { in: %w[running completed error] }

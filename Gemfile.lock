@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     llm_logs (0.1.0)
+      diffy (~> 3.4)
       kaminari (~> 1.2)
       mustache (~> 1.1)
       rails (>= 8.0)
@@ -94,6 +95,7 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
+    diffy (3.4.4)
     drb (2.2.3)
     erb (6.0.2)
     erubi (1.13.1)

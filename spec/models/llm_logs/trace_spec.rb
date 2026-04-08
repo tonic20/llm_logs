@@ -73,6 +73,26 @@ RSpec.describe LlmLogs::Trace do
     end
   end
 
+  describe "#prompt_version" do
+    it "can reference a prompt version" do
+      prompt = LlmLogs::Prompt.create!(slug: "test", name: "Test")
+      prompt.update_content!(messages: [{ "role" => "user", "content" => "Hello" }])
+      version = prompt.current_version
+
+      trace = LlmLogs::Trace.create!(
+        name: "test", started_at: Time.current, status: "running",
+        prompt_version: version
+      )
+
+      expect(trace.prompt_version).to eq(version)
+    end
+
+    it "is optional" do
+      trace = LlmLogs::Trace.create!(name: "test", started_at: Time.current, status: "running")
+      expect(trace.prompt_version).to be_nil
+    end
+  end
+
   describe "scopes" do
     it ".recent orders by started_at desc" do
       old = LlmLogs::Trace.create!(name: "old", started_at: 2.hours.ago, status: "completed")

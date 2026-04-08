@@ -3,6 +3,7 @@ require "mustache"
 module LlmLogs
   class PromptVersion < ApplicationRecord
     belongs_to :prompt
+    has_many :traces, class_name: "LlmLogs::Trace", dependent: :nullify
 
     validates :version_number, presence: true, uniqueness: { scope: :prompt_id }
     validates :messages, presence: true

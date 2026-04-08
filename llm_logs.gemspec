@@ -17,4 +17,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rails", ">= 8.0"
   spec.add_dependency "mustache", "~> 1.1"
   spec.add_dependency "kaminari", "~> 1.2"
+  spec.add_dependency "diffy", "~> 3.4"
 end

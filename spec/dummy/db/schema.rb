@@ -70,14 +70,16 @@ ActiveRecord::Schema[8.1].define(version: 6) do
     t.float "duration_ms"
     t.jsonb "metadata", default: {}
     t.string "name", null: false
+    t.bigint "prompt_version_id"
     t.integer "spans_count", default: 0, null: false
     t.datetime "started_at", null: false
     t.string "status", default: "running", null: false
-    t.decimal "total_cost", precision: 10, scale: 6, default: "0.0"
     t.integer "total_cached_tokens", default: 0, null: false
+    t.decimal "total_cost", precision: 10, scale: 6, default: "0.0"
     t.integer "total_input_tokens", default: 0
     t.integer "total_output_tokens", default: 0
     t.datetime "updated_at", null: false
+    t.index ["prompt_version_id"], name: "index_llm_logs_traces_on_prompt_version_id"
     t.index ["started_at"], name: "index_llm_logs_traces_on_started_at"
     t.index ["status"], name: "index_llm_logs_traces_on_status"
   end
@@ -85,4 +87,5 @@ ActiveRecord::Schema[8.1].define(version: 6) do
   add_foreign_key "llm_logs_prompt_versions", "llm_logs_prompts", column: "prompt_id"
   add_foreign_key "llm_logs_spans", "llm_logs_spans", column: "parent_span_id"
   add_foreign_key "llm_logs_spans", "llm_logs_traces", column: "trace_id"
+  add_foreign_key "llm_logs_traces", "llm_logs_prompt_versions", column: "prompt_version_id", on_delete: :nullify
 end
