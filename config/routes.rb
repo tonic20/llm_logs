@@ -6,6 +6,13 @@ LlmLogs::Engine.routes.draw do
   end
 
   resources :prompts do
-    resources :versions, only: [:index, :show], controller: "prompt_versions"
+    resources :versions, only: [:index, :show, :destroy], controller: "prompt_versions" do
+      member do
+        post :restore
+      end
+      collection do
+        get :compare
+      end
+    end
   end
 end
