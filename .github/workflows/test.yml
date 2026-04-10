@@ -42,15 +42,17 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - name: Normalize database host
-        run: >-
-          ruby -e 'path = "spec/dummy/config/database.yml"; text = File.read(path); text.gsub!("host: localhost", "host: 127.0.0.1"); File.write(path, text)'
-
       - name: Create database
-        run: bundle exec rake db:create
+        run: >-
+          DATABASE_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/llm_logs_test
+          bundle exec rake db:create
 
       - name: Run migrations
-        run: bundle exec rake db:migrate
+        run: >-
+          DATABASE_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/llm_logs_test
+          bundle exec rake db:migrate
 
       - name: Run test suite
-        run: bundle exec rspec
+        run: >-
+          DATABASE_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/llm_logs_test
+          bundle exec rspec
