@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -40,6 +41,10 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
+
+      - name: Normalize database host
+        run: >-
+          ruby -e 'path = "spec/dummy/config/database.yml"; text = File.read(path); text.gsub!("host: localhost", "host: 127.0.0.1"); File.write(path, text)'
 
       - name: Create database
         run: bundle exec rake db:create
