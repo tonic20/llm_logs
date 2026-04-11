@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-04-11
+
+### Changed
+- Simplified the installation instructions to use `gem "llm_logs"` now that the gem is published on RubyGems.
+
 ## [0.1.1] - 2026-04-10
 
 ### Added

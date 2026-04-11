@@ -7,7 +7,7 @@ Mountable Rails engine for LLM call tracing and prompt management. Auto-instrume
 Add to your Gemfile:
 
 ```ruby
-gem "llm_logs", github: "tonic20/llm_logs"
+gem "llm_logs"
 ```
 
 Run the install generator:
