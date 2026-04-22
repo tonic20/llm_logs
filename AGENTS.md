@@ -27,7 +27,8 @@ Rules for AI agents working on the `llm_logs` Ruby gem (a mountable Rails engine
   - Minor (`0.1.3 → 0.2.0`): new features, new configuration options, new public APIs (pre-1.0 may also include breaking changes here, but call them out loudly).
   - Major (`0.1.3 → 1.0.0`+): breaking changes in stable releases.
 - Every version bump must have a corresponding `## [x.y.z] - YYYY-MM-DD` section in `CHANGELOG.md` with Added / Changed / Fixed / Removed subsections as needed.
-- Do **not** tag or push gems (`gem push`) unless explicitly asked — that is a human-gated action.
+- After a release commit lands on `main`, tag it `vX.Y.Z` (matches the pattern set by `v0.1.1`, `v0.1.2`, `v0.1.3`, ...) and push the tag: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
+- Do **not** run `gem push` yourself — that requires the maintainer's RubyGems MFA. Build the gem (`gem build llm_logs.gemspec`) and hand it off.
 
 ## Feature workflow
 
@@ -75,3 +76,4 @@ Rules for AI agents working on the `llm_logs` Ruby gem (a mountable Rails engine
 - [ ] `lib/llm_logs/version.rb` bumped
 - [ ] `CHANGELOG.md` updated with today's date and a user-facing summary
 - [ ] No stray debug output, commented-out code, or TODOs introduced
+- [ ] When a release is cut (gem built/pushed), the matching `vX.Y.Z` git tag exists and has been pushed
