@@ -40,7 +40,7 @@
       <% @version.messages.each do |msg| %>
         <div class="rounded-lg p-3 <%= msg['role'] == 'system' ? 'bg-yellow-50' : msg['role'] == 'user' ? 'bg-blue-50' : 'bg-gray-50' %>">
           <div class="text-xs font-medium text-gray-500 uppercase mb-1"><%= msg['role'] %></div>
-          <pre class="text-sm whitespace-pre-wrap font-mono"><%= msg['content'] %></pre>
+          <div class="markdown-body text-sm"><%= render_markdown(msg["content"]) %></div>
         </div>
       <% end %>
     </div>

@@ -92,6 +92,41 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response.body).to include("Greeting")
       expect(response.body).to include("Hello {{name}}")
     end
+
+    it "renders prompt messages as sanitized markdown" do
+      prompt = LlmLogs::Prompt.create!(slug: "markdown", name: "Markdown")
+      prompt.update_content!(
+        messages: [
+          {
+            "role" => "user",
+            "content" => "Use **bold** text.\n\n- one\n- two\n\n<script>alert(1)</script>"
+          }
+        ]
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("<strong>bold</strong>")
+      expect(response.body).to include("<li>one</li>")
+      expect(response.body).not_to include("<script>")
+    end
+
+    it "collapses SDK usage by default" do
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "Hello {{name}}" }]
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      page = Nokogiri::HTML(response.body)
+      sdk_usage = page.at_css("details")
+
+      expect(sdk_usage).not_to be_nil
+      expect(sdk_usage["open"]).to be_nil
+      expect(sdk_usage.at_css("summary").text).to include("SDK Usage")
+    end
   end
 
   describe "PATCH /llm_logs/prompts/:id" do

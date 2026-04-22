@@ -25,6 +25,19 @@ RSpec.describe "LlmLogs::PromptVersions", type: :request do
       expect(response.body).to include("v1 content")
     end
 
+    it "renders version messages as markdown" do
+      prompt.update_content!(
+        messages: [{ "role" => "system", "content" => "Use `code` and **bold**" }]
+      )
+
+      version = prompt.current_version
+      get "/llm_logs/prompts/#{prompt.id}/versions/#{version.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("<code>code</code>")
+      expect(response.body).to include("<strong>bold</strong>")
+    end
+
     it "shows trace count when version has linked traces" do
       version = prompt.version(1)
       LlmLogs::Trace.create!(
