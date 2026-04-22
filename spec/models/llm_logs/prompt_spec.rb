@@ -132,4 +132,24 @@ RSpec.describe LlmLogs::Prompt do
       expect(current.changelog).to eq("Rollback to version 1")
     end
   end
+
+  describe "tag scopes" do
+    let!(:skill)    { LlmLogs::Prompt.create!(slug: "strategy-discovery", name: "S", tags: %w[skills]) }
+    let!(:fragment) { LlmLogs::Prompt.create!(slug: "discovery-onchain-context", name: "F", tags: %w[fragments on-chain]) }
+    let!(:template) { LlmLogs::Prompt.create!(slug: "trading-memo", name: "T", tags: %w[templates]) }
+
+    it ".with_tag returns prompts that contain the tag" do
+      expect(LlmLogs::Prompt.with_tag("skills")).to contain_exactly(skill)
+      expect(LlmLogs::Prompt.with_tag("on-chain")).to contain_exactly(fragment)
+    end
+
+    it ".with_any_tag returns prompts matching any of the given tags" do
+      expect(LlmLogs::Prompt.with_any_tag(%w[skills templates]))
+        .to contain_exactly(skill, template)
+    end
+
+    it "#tags_string joins tags with commas" do
+      expect(fragment.tags_string).to eq("fragments, on-chain")
+    end
+  end
 end
