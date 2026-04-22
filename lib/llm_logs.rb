@@ -3,6 +3,7 @@ require "llm_logs/version"
 require "llm_logs/engine"
 require "llm_logs/tracer"
 require "llm_logs/prompt_renderer"
+require "llm_logs/configuration"
 
 module LlmLogs
   mattr_accessor :enabled, default: true
