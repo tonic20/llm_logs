@@ -49,27 +49,30 @@ module LlmLogs
         raise "Missing required front-matter field '#{field}' in #{@path}" unless front[field].is_a?(String) && !front[field].strip.empty?
       end
 
-      tags = (Array(front["tags"]) + [@auto_tag]).map(&:to_s).uniq
-      prompt = LlmLogs::Prompt.find_or_initialize_by(slug: front["slug"])
-      created = prompt.new_record?
+      ActiveRecord::Base.transaction do
+        tags = (Array(front["tags"]) + [@auto_tag]).map(&:to_s).uniq
+        prompt = LlmLogs::Prompt.find_or_initialize_by(slug: front["slug"])
+        created = prompt.new_record?
 
-      prompt.name        = front["name"]
-      prompt.description = front["description"]
-      prompt.tags        = tags
-      prompt.save!
+        prompt.name        = front["name"]
+        prompt.description = front["description"]
+        prompt.tags        = tags
+        prompt.save!
 
-      messages = build_messages(front, body)
-      model    = front["model"]
-      model_params = front["model_params"].is_a?(Hash) ? front["model_params"] : {}
+        messages = build_messages(front, body)
+        model    = front["model"]
+        model_params = front["model_params"].is_a?(Hash) ? front["model_params"] : {}
+        model_params = model_params.deep_stringify_keys
 
-      if version_needs_update?(prompt, messages, model, model_params)
-        prompt.update_content!(messages: messages, model: model, model_params: model_params, changelog: "Synced from #{@path.basename}")
-        status = created ? "Created" : "Updated"
-      else
-        status = "Unchanged"
+        if version_needs_update?(prompt, messages, model, model_params)
+          prompt.update_content!(messages: messages, model: model, model_params: model_params, changelog: "Synced from #{@path.basename}")
+          status = created ? "Created" : "Updated"
+        else
+          status = "Unchanged"
+        end
+
+        log "#{status}: #{prompt.slug}"
       end
-
-      log "#{status}: #{prompt.slug}"
     end
 
     private
@@ -77,6 +80,7 @@ module LlmLogs
     def build_messages(front, body)
       if front["messages"].is_a?(Array)
         front["messages"].map do |msg|
+          msg = msg.deep_stringify_keys if msg.is_a?(Hash)
           content =
             if msg["body_file"]
               body_path = @path.parent / msg["body_file"]
@@ -98,7 +102,7 @@ module LlmLogs
 
       current.messages != messages ||
         current.model.to_s != model.to_s ||
-        (current.model_params || {}) != (model_params || {})
+        (current.model_params || {}).deep_stringify_keys != (model_params || {}).deep_stringify_keys
     end
 
     def log(message)

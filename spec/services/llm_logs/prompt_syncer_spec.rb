@@ -119,4 +119,58 @@ RSpec.describe LlmLogs::PromptSyncer do
     write("skills/bad.md", "---\nname: Missing Slug\n---\nbody\n")
     expect { sync! }.to raise_error(/slug/)
   end
+
+  it "creates a new version when model_params change" do
+    write("templates/foo.md", <<~MD)
+      ---
+      slug: foo
+      name: F
+      model: gpt-4
+      model_params:
+        temperature: 0.3
+      ---
+      body
+    MD
+    sync!
+    write("templates/foo.md", <<~MD)
+      ---
+      slug: foo
+      name: F
+      model: gpt-4
+      model_params:
+        temperature: 0.7
+      ---
+      body
+    MD
+    sync!
+
+    prompt = LlmLogs::Prompt.find_by!(slug: "foo")
+    expect(prompt.versions.count).to eq(2)
+    expect(prompt.current_version.model_params).to eq({ "temperature" => 0.7 })
+  end
+
+  it "does not mint a new version when YAML uses symbol keys for model_params" do
+    contents = <<~MD
+      ---
+      slug: foo
+      name: F
+      model: gpt-4
+      model_params:
+        :temperature: 0.3
+      ---
+      body
+    MD
+    write("templates/foo.md", contents)
+    sync!
+    write("templates/foo.md", contents)
+    expect { sync! }.not_to change { LlmLogs::Prompt.find_by!(slug: "foo").versions.count }
+  end
+
+  it "rolls back the prompt when version creation fails" do
+    write("skills/boom.md", "---\nslug: boom\nname: B\n---\nbody\n")
+    allow_any_instance_of(LlmLogs::Prompt).to receive(:update_content!).and_raise("boom")
+
+    expect { sync! }.to raise_error("boom")
+    expect(LlmLogs::Prompt.find_by(slug: "boom")).to be_nil
+  end
 end
