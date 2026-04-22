@@ -120,6 +120,66 @@ prompt.version(1)            # specific version
 prompt.rollback_to!(1)       # creates new version from v1 content
 ```
 
+### Sync Prompts From Files
+
+Store prompts as Markdown files and sync them into `LlmLogs::Prompt` records with the rake task.
+
+```ruby
+# config/initializers/llm_logs.rb
+LlmLogs.setup do |config|
+  config.prompts_source_path = Rails.root.join("db/data/prompts")
+  config.prompt_subfolders = %w[skills fragments templates]
+end
+```
+
+```sh
+bin/rails llm_logs:prompts:sync
+```
+
+The syncer reads `*.md` files from each configured subfolder. The subfolder name is added as a prompt tag automatically.
+
+```text
+db/data/prompts/
+  skills/
+    backtest-evaluation.md
+  fragments/
+    provider-notes.md
+  templates/
+    trading-memo.md
+```
+
+Single-message prompts use the Markdown body as the system message:
+
+```markdown
+---
+slug: backtest-evaluation
+name: Backtest Evaluation
+description: How to evaluate backtests
+tags: [evaluation]
+model: anthropic/claude-sonnet-4
+model_params:
+  temperature: 0.3
+---
+Body content here.
+```
+
+Multi-message prompts can reference sibling body files:
+
+```markdown
+---
+slug: trading-memo
+name: Trading Memo
+model: deepseek/deepseek-v3.2
+messages:
+  - role: system
+    body_file: trading_memo_system.md
+  - role: user
+    body_file: trading_memo_user.md
+---
+```
+
+Running the task creates missing prompts, updates metadata, and creates a new prompt version only when messages, model, or model parameters changed.
+
 ## Web UI
 
 Browse traces and manage prompts at `/llm_logs`.
