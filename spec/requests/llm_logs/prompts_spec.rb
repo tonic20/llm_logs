@@ -155,4 +155,13 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(LlmLogs::Prompt.find_by!(slug: "new-one").tags).to eq(%w[skills fragments])
     end
   end
+
+  describe "GET /llm_logs/prompts with a non-string tag param" do
+    it "ignores array tag params without raising" do
+      LlmLogs::Prompt.create!(slug: "a-skill", name: "A", tags: %w[skills])
+      get "/llm_logs/prompts", params: { tag: %w[foo bar] }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("a-skill")
+    end
+  end
 end

@@ -1,10 +1,11 @@
 module LlmLogs
   class PromptsController < ApplicationController
     def index
+      tag = params[:tag].is_a?(String) ? params[:tag].presence : nil
       scope = Prompt.order(:name).includes(:versions)
-      scope = scope.with_tag(params[:tag]) if params[:tag].present?
+      scope = scope.with_tag(tag) if tag
       @prompts    = scope.page(params[:page]).per(25)
-      @active_tag = params[:tag].presence
+      @active_tag = tag
       @all_tags   = Prompt.pluck(:tags).flatten.compact.uniq.sort
     end
 
