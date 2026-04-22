@@ -191,6 +191,42 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
     end
   end
 
+  describe "GET /llm_logs/prompts sorting" do
+    before do
+      LlmLogs::Prompt.create!(slug: "b-slug", name: "Banana", updated_at: 2.days.ago)
+      LlmLogs::Prompt.create!(slug: "a-slug", name: "Apple",  updated_at: 1.day.ago)
+      LlmLogs::Prompt.create!(slug: "c-slug", name: "Cherry", updated_at: Time.current)
+    end
+
+    it "defaults to sorting by name ascending" do
+      get "/llm_logs/prompts"
+      body = response.body
+      expect(body.index("Apple")).to be < body.index("Banana")
+      expect(body.index("Banana")).to be < body.index("Cherry")
+    end
+
+    it "sorts by slug descending" do
+      get "/llm_logs/prompts", params: { sort: "slug", direction: "desc" }
+      body = response.body
+      expect(body.index("c-slug")).to be < body.index("b-slug")
+      expect(body.index("b-slug")).to be < body.index("a-slug")
+    end
+
+    it "sorts by updated desc" do
+      get "/llm_logs/prompts", params: { sort: "updated", direction: "desc" }
+      body = response.body
+      expect(body.index("Cherry")).to be < body.index("Apple")
+      expect(body.index("Apple")).to be < body.index("Banana")
+    end
+
+    it "ignores unknown sort columns" do
+      get "/llm_logs/prompts", params: { sort: "id; DROP TABLE" }
+      expect(response).to have_http_status(:ok)
+      body = response.body
+      expect(body.index("Apple")).to be < body.index("Banana")
+    end
+  end
+
   describe "GET /llm_logs/prompts with a non-string tag param" do
     it "ignores array tag params without raising" do
       LlmLogs::Prompt.create!(slug: "a-skill", name: "A", tags: %w[skills])

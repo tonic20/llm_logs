@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2026-04-22
+
+### Added
+- Sortable columns (Name, Slug, Updated) on the `/llm_logs/prompts` index with a default sort by name ascending.
+- `AGENTS.md` with contribution rules for AI agents working on the gem.
+
 ## [0.1.3] - 2026-04-22
 
 ### Added

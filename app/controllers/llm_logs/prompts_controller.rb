@@ -1,8 +1,12 @@
 module LlmLogs
   class PromptsController < ApplicationController
+    SORT_COLUMNS = { "name" => :name, "slug" => :slug, "updated" => :updated_at }.freeze
+
     def index
       tag = params[:tag].is_a?(String) ? params[:tag].presence : nil
-      scope = Prompt.order(:name).includes(:versions)
+      @sort      = SORT_COLUMNS.key?(params[:sort]) ? params[:sort] : "name"
+      @direction = params[:direction] == "desc" ? "desc" : "asc"
+      scope = Prompt.order(SORT_COLUMNS.fetch(@sort) => @direction.to_sym).includes(:versions)
       scope = scope.with_tag(tag) if tag
       @prompts    = scope.page(params[:page]).per(25)
       @active_tag = tag
