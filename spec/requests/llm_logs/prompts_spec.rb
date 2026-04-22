@@ -133,4 +133,26 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response).to redirect_to("/llm_logs/prompts")
     end
   end
+
+  describe "GET /llm_logs/prompts?tag=skills" do
+    before do
+      LlmLogs::Prompt.create!(slug: "a-skill", name: "A", tags: %w[skills])
+      LlmLogs::Prompt.create!(slug: "a-template", name: "T", tags: %w[templates])
+    end
+
+    it "filters by the given tag" do
+      get "/llm_logs/prompts", params: { tag: "skills" }
+      expect(response.body).to include("a-skill")
+      expect(response.body).not_to include("a-template")
+    end
+  end
+
+  describe "POST /llm_logs/prompts with comma-separated tags" do
+    it "parses the tags input into an array" do
+      post "/llm_logs/prompts", params: {
+        prompt: { slug: "new-one", name: "N", tags_input: "skills, fragments" }
+      }
+      expect(LlmLogs::Prompt.find_by!(slug: "new-one").tags).to eq(%w[skills fragments])
+    end
+  end
 end
