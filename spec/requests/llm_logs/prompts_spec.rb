@@ -92,6 +92,41 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response.body).to include("Greeting")
       expect(response.body).to include("Hello {{name}}")
     end
+
+    it "renders prompt messages as sanitized markdown" do
+      prompt = LlmLogs::Prompt.create!(slug: "markdown", name: "Markdown")
+      prompt.update_content!(
+        messages: [
+          {
+            "role" => "user",
+            "content" => "Use **bold** text.\n\n- one\n- two\n\n<script>alert(1)</script>"
+          }
+        ]
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("<strong>bold</strong>")
+      expect(response.body).to include("<li>one</li>")
+      expect(response.body).not_to include("<script>")
+    end
+
+    it "collapses SDK usage by default" do
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "Hello {{name}}" }]
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      page = Nokogiri::HTML(response.body)
+      sdk_usage = page.at_css("details")
+
+      expect(sdk_usage).not_to be_nil
+      expect(sdk_usage["open"]).to be_nil
+      expect(sdk_usage.at_css("summary").text).to include("SDK Usage")
+    end
   end
 
   describe "PATCH /llm_logs/prompts/:id" do
@@ -131,6 +166,37 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       }.to change(LlmLogs::Prompt, :count).by(-1)
 
       expect(response).to redirect_to("/llm_logs/prompts")
+    end
+  end
+
+  describe "GET /llm_logs/prompts?tag=skills" do
+    before do
+      LlmLogs::Prompt.create!(slug: "a-skill", name: "A", tags: %w[skills])
+      LlmLogs::Prompt.create!(slug: "a-template", name: "T", tags: %w[templates])
+    end
+
+    it "filters by the given tag" do
+      get "/llm_logs/prompts", params: { tag: "skills" }
+      expect(response.body).to include("a-skill")
+      expect(response.body).not_to include("a-template")
+    end
+  end
+
+  describe "POST /llm_logs/prompts with comma-separated tags" do
+    it "parses the tags input into an array" do
+      post "/llm_logs/prompts", params: {
+        prompt: { slug: "new-one", name: "N", tags_input: "skills, fragments" }
+      }
+      expect(LlmLogs::Prompt.find_by!(slug: "new-one").tags).to eq(%w[skills fragments])
+    end
+  end
+
+  describe "GET /llm_logs/prompts with a non-string tag param" do
+    it "ignores array tag params without raising" do
+      LlmLogs::Prompt.create!(slug: "a-skill", name: "A", tags: %w[skills])
+      get "/llm_logs/prompts", params: { tag: %w[foo bar] }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("a-skill")
     end
   end
 end

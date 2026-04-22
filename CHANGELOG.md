@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-04-22
+
+### Added
+- `tags` array column on prompts with GIN index and `with_tag` / `with_any_tag` scopes.
+- Tag filter on the `/llm_logs/prompts` index and comma-separated tag input in the form.
+- `LlmLogs::PromptSyncer` service and `llm_logs:prompts:sync` rake task for syncing prompts from a configured source directory.
+- `LlmLogs::Configuration` with `prompts_source_path` and `prompt_subfolders` (defaults to `skills`, `fragments`, `templates`).
+- Markdown rendering for prompt messages on prompt detail and version detail pages.
+
+### Changed
+- SDK usage examples on prompt detail pages are collapsed by default and can be expanded inline.
+- Configuration now uses a single `LlmLogs.setup` block for core logging settings and prompt sync settings.
+
 ## [0.1.2] - 2026-04-11
 
 ### Changed

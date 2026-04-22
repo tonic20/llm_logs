@@ -33,8 +33,10 @@ ActiveRecord::Schema[8.1].define(version: 6) do
     t.text "description"
     t.string "name", null: false
     t.string "slug", null: false
+    t.string "tags", default: [], null: false, array: true
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_llm_logs_prompts_on_slug", unique: true
+    t.index ["tags"], name: "index_llm_logs_prompts_on_tags", using: :gin
   end
 
   create_table "llm_logs_spans", force: :cascade do |t|

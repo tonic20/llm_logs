@@ -23,4 +23,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "mustache", "~> 1.1"
   spec.add_dependency "kaminari", "~> 1.2"
   spec.add_dependency "diffy", "~> 3.4"
+  spec.add_dependency "kramdown", "~> 2.5"
+  spec.add_dependency "kramdown-parser-gfm", "~> 1.1"
 end

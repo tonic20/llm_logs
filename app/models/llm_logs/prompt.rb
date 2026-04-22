@@ -5,6 +5,13 @@ module LlmLogs
     validates :slug, presence: true, uniqueness: true
     validates :name, presence: true
 
+    scope :with_tag,      ->(tag)  { where("? = ANY(tags)", tag) }
+    scope :with_any_tag,  ->(tags) { where("tags && ARRAY[?]::varchar[]", Array(tags)) }
+
+    def tags_string
+      Array(tags).join(", ")
+    end
+
     def self.load(slug)
       find_by!(slug: slug)
     end

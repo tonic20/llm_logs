@@ -7,4 +7,10 @@ LlmLogs.setup do |config|
 
   # Number of days to keep trace data (for future cleanup job)
   # config.retention_days = 30
+
+  # Directory used by `bin/rails llm_logs:prompts:sync`
+  # config.prompts_source_path = Rails.root.join("db/data/prompts")
+
+  # Subdirectories to sync within `prompts_source_path`
+  # config.prompt_subfolders = %w[skills fragments templates]
 end

@@ -1,20 +1,41 @@
 require "kaminari"
 require "llm_logs/version"
+require "llm_logs/configuration"
 require "llm_logs/engine"
 require "llm_logs/tracer"
 require "llm_logs/prompt_renderer"
 
 module LlmLogs
-  mattr_accessor :enabled, default: true
-  mattr_accessor :auto_instrument, default: true
-  mattr_accessor :retention_days, default: 30
+  def self.setup
+    yield configuration
+  end
 
   def self.enabled?
     enabled
   end
 
-  def self.setup
-    yield self
+  def self.enabled
+    configuration.enabled
+  end
+
+  def self.enabled=(enabled)
+    configuration.enabled = enabled
+  end
+
+  def self.auto_instrument
+    configuration.auto_instrument
+  end
+
+  def self.auto_instrument=(auto_instrument)
+    configuration.auto_instrument = auto_instrument
+  end
+
+  def self.retention_days
+    configuration.retention_days
+  end
+
+  def self.retention_days=(retention_days)
+    configuration.retention_days = retention_days
   end
 
   def self.trace(name, **options, &block)

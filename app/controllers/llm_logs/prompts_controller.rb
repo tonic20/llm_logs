@@ -1,7 +1,12 @@
 module LlmLogs
   class PromptsController < ApplicationController
     def index
-      @prompts = Prompt.order(:name).includes(:versions).page(params[:page]).per(25)
+      tag = params[:tag].is_a?(String) ? params[:tag].presence : nil
+      scope = Prompt.order(:name).includes(:versions)
+      scope = scope.with_tag(tag) if tag
+      @prompts    = scope.page(params[:page]).per(25)
+      @active_tag = tag
+      @all_tags   = Prompt.pluck(:tags).flatten.compact.uniq.sort
     end
 
     def show
@@ -54,7 +59,11 @@ module LlmLogs
     private
 
     def prompt_params
-      params.require(:prompt).permit(:slug, :name, :description)
+      raw = params.require(:prompt).permit(:slug, :name, :description, :tags_input, tags: [])
+      if raw[:tags_input].present?
+        raw[:tags] = raw[:tags_input].split(",").map(&:strip).reject(&:blank?)
+      end
+      raw.except(:tags_input)
     end
 
     def version_params

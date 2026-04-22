@@ -27,6 +27,15 @@
         <p class="mt-1 text-sm text-red-600"><%= error %></p>
       <% end %>
     </div>
+
+    <div>
+      <%= f.label :tags_input, "Tags", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= f.text_field :tags_input,
+          value: prompt.persisted? ? prompt.tags_string : nil,
+          class: "w-full rounded-md shadow-sm text-sm px-3 py-2 border border-gray-300",
+          placeholder: "comma-separated (e.g. skills, fragments)" %>
+      <p class="mt-1 text-xs text-gray-500">Used to classify and filter prompts. Free-form strings.</p>
+    </div>
   </div>
 
   <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-6 space-y-4">
