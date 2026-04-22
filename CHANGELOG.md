@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - SDK usage examples on prompt detail pages are collapsed by default and can be expanded inline.
+- Configuration now uses a single `LlmLogs.setup` block for core logging settings and prompt sync settings.
 
 ## [0.1.2] - 2026-04-11
 

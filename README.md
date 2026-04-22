@@ -29,6 +29,7 @@ mount LlmLogs::Engine, at: "/llm_logs"
 LlmLogs.setup do |config|
   config.enabled = true
   config.auto_instrument = true
+  config.prompts_source_path = Rails.root.join("db/data/prompts")
 end
 ```
 
@@ -131,9 +132,11 @@ Browse traces and manage prompts at `/llm_logs`.
 
 ```ruby
 LlmLogs.setup do |config|
-  config.enabled = true               # master switch for logging
-  config.auto_instrument = true       # auto-prepend on RubyLLM::Chat
-  config.retention_days = 30          # for future cleanup job
+  config.enabled = true                                      # master switch for logging
+  config.auto_instrument = true                              # auto-prepend on RubyLLM::Chat
+  config.retention_days = 30                                 # for future cleanup job
+  config.prompts_source_path = Rails.root.join("db/data/prompts")
+  config.prompt_subfolders = %w[skills fragments templates]
 end
 ```
 
