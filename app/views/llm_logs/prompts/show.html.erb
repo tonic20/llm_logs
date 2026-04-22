@@ -7,6 +7,12 @@
         <% if @prompt.description.present? %>
           &middot; <%= @prompt.description %>
         <% end %>
+        <% if @prompt.tags.present? %>
+          &middot;
+          <% @prompt.tags.each do |tag| %>
+            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-1.5 py-0.5 rounded ml-1"><%= tag %></span>
+          <% end %>
+        <% end %>
       </p>
     </div>
     <div class="flex items-center space-x-3">
