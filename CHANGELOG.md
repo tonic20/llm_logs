@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.5] - 2026-06-03
+
+### Fixed
+- Trace/span context now propagates into child fibers. It is stored in `Fiber[]`
+  (inherited by child fibers) instead of `Thread.current[:key]` (fiber-local and
+  *not* inherited). Tracing driven inside a fiber scheduler such as
+  socketry/async no longer loses the active trace, which previously caused
+  `start_span` to spawn orphan `auto:*` traces and split parent/child spans
+  across separate traces.
+
 ## [0.1.4] - 2026-04-22
 
 ### Added

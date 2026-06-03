@@ -36,7 +36,7 @@ RSpec.describe LlmLogs::Span do
   describe "#finish" do
     it "sets completed_at and duration_ms" do
       span = LlmLogs::Span.create!(trace: trace, name: "test", span_type: "llm", started_at: 1.second.ago)
-      Thread.current[:llm_logs_span] = span
+      Fiber[:llm_logs_span] = span
 
       span.finish
 
@@ -47,11 +47,11 @@ RSpec.describe LlmLogs::Span do
     it "restores parent span as current" do
       parent = LlmLogs::Span.create!(trace: trace, name: "parent", span_type: "llm", started_at: Time.current)
       child = LlmLogs::Span.create!(trace: trace, name: "child", span_type: "tool", started_at: Time.current, parent_span: parent)
-      Thread.current[:llm_logs_span] = child
+      Fiber[:llm_logs_span] = child
 
       child.finish
 
-      expect(Thread.current[:llm_logs_span]).to eq(parent)
+      expect(Fiber[:llm_logs_span]).to eq(parent)
     end
   end
 

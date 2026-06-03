@@ -98,7 +98,7 @@ RSpec.describe LlmLogs::Prompt do
     end
 
     it "does not fail when no trace is active" do
-      Thread.current[:llm_logs_trace] = nil
+      Fiber[:llm_logs_trace] = nil
       result = prompt.build(name: "Alice", project: "Tradebot")
       expect(result[:messages]).to be_present
     end

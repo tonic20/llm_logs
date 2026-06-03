@@ -15,8 +15,8 @@ module LlmLogs
         duration_ms: (Time.current - started_at) * 1000
       )
 
-      # Restore parent span as current
-      Thread.current[:llm_logs_span] = parent_span
+      # Restore parent span as current (Fiber[] so child fibers inherit it)
+      LlmLogs::Tracer.current_span = parent_span
     end
 
     def record_response(message)

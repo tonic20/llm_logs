@@ -1,11 +1,20 @@
 module LlmLogs
   module Tracer
+    # Trace/span context is kept in Fiber-local storage (Fiber[]), which child
+    # fibers inherit on creation. This matters for fiber-based schedulers such as
+    # socketry/async: work driven inside a child fiber still sees the active
+    # trace. The legacy Thread.current[:key] store is *not* inherited by child
+    # fibers, which caused spans to auto-create orphan traces instead of nesting.
     def self.current_trace
-      Thread.current[:llm_logs_trace]
+      Fiber[:llm_logs_trace]
     end
 
     def self.current_span
-      Thread.current[:llm_logs_span]
+      Fiber[:llm_logs_span]
+    end
+
+    def self.current_span=(span)
+      Fiber[:llm_logs_span] = span
     end
 
     def self.start_trace(name, metadata: {})
@@ -16,10 +25,10 @@ module LlmLogs
         started_at: Time.current
       )
 
-      previous_trace = Thread.current[:llm_logs_trace]
-      previous_span = Thread.current[:llm_logs_span]
-      Thread.current[:llm_logs_trace] = trace
-      Thread.current[:llm_logs_span] = nil
+      previous_trace = Fiber[:llm_logs_trace]
+      previous_span = Fiber[:llm_logs_span]
+      Fiber[:llm_logs_trace] = trace
+      Fiber[:llm_logs_span] = nil
 
       begin
         yield trace
@@ -28,8 +37,8 @@ module LlmLogs
         raise
       ensure
         trace.complete! if trace.status == "running"
-        Thread.current[:llm_logs_trace] = previous_trace
-        Thread.current[:llm_logs_span] = previous_span
+        Fiber[:llm_logs_trace] = previous_trace
+        Fiber[:llm_logs_span] = previous_span
       end
     end
 
@@ -50,7 +59,7 @@ module LlmLogs
         started_at: Time.current
       )
 
-      Thread.current[:llm_logs_span] = span
+      Fiber[:llm_logs_span] = span
       span
     end
 
@@ -60,7 +69,7 @@ module LlmLogs
         status: "running",
         started_at: Time.current
       )
-      Thread.current[:llm_logs_trace] = trace
+      Fiber[:llm_logs_trace] = trace
       trace
     end
   end

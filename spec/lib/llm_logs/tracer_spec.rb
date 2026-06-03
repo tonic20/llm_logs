@@ -2,8 +2,8 @@ require "spec_helper"
 
 RSpec.describe LlmLogs::Tracer do
   after do
-    Thread.current[:llm_logs_trace] = nil
-    Thread.current[:llm_logs_span] = nil
+    Fiber[:llm_logs_trace] = nil
+    Fiber[:llm_logs_span] = nil
   end
 
   describe ".start_trace" do
@@ -81,6 +81,20 @@ RSpec.describe LlmLogs::Tracer do
         child = LlmLogs::Tracer.start_span(name: "tool.search", span_type: "tool")
 
         expect(child.parent_span).to eq(parent)
+      end
+    end
+
+    it "sees the active trace inside a child fiber" do
+      # Async (socketry/async) and other fiber schedulers run work in child
+      # fibers. Trace context must propagate into them, otherwise start_span
+      # auto-creates an orphan trace. Child fibers inherit Fiber[] storage but
+      # not the legacy fiber-local Thread.current[:key] storage.
+      LlmLogs::Tracer.start_trace("test") do |trace|
+        span = nil
+        Fiber.new { span = LlmLogs::Tracer.start_span(name: "chat.complete", span_type: "llm") }.resume
+
+        expect(span.trace).to eq(trace)
+        expect(LlmLogs::Trace.where("name LIKE 'auto:%'").count).to eq(0)
       end
     end
   end
