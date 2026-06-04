@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    llm_logs (0.1.5)
+    llm_logs (0.1.6)
       diffy (~> 3.4)
       kaminari (~> 1.2)
       kramdown (~> 2.5)
