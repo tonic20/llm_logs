@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] - 2026-06-04
+
+### Fixed
+- Prompt message rendering no longer hides custom tags. `render_markdown` escapes
+  `&`/`<`/`>` before Markdown so prompt delimiters such as `<user_request>` show as
+  visible text on the prompt and version detail pages, instead of being parsed as
+  unknown HTML and stripped by the sanitizer. Standard Markdown (headings, bold,
+  lists, tables, code) still renders.
+
 ## [0.1.5] - 2026-06-03
 
 ### Fixed

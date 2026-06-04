@@ -16,8 +16,16 @@ module LlmLogs
     end
 
     def render_markdown(text)
+      # Escape HTML metacharacters before Markdown so prompt delimiters such as
+      # <user_request> render as visible text instead of being parsed as unknown
+      # HTML tags and then stripped by `sanitize`. `&` is escaped first so the
+      # `&` in `&lt;`/`&gt;` is not double-escaped. Markdown syntax (#, *, -, `,
+      # tables) is untouched, so headings/bold/lists/code still render. Caveat:
+      # <, >, & that appear inside fenced or inline code are shown as entities.
+      escaped = text.to_s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
+
       html = Kramdown::Document.new(
-        text.to_s,
+        escaped,
         input: "GFM",
         hard_wrap: true,
         syntax_highlighter: nil
