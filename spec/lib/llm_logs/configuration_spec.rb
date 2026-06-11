@@ -30,4 +30,17 @@ RSpec.describe LlmLogs::Configuration do
   it "does not expose a separate configure entrypoint" do
     expect(LlmLogs).not_to respond_to(:configure)
   end
+
+  it "enables batching by default and exposes the provider" do
+    config = LlmLogs::Configuration.new
+    expect(config.batch_enabled).to be(true)
+    expect(config.batch_provider).to eq(:openai_responses)
+  end
+
+  it "exposes batch_enabled? at the module level" do
+    LlmLogs.configuration.batch_enabled = false
+    expect(LlmLogs.batch_enabled?).to be(false)
+  ensure
+    LlmLogs.configuration.batch_enabled = true
+  end
 end

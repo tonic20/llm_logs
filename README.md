@@ -180,6 +180,72 @@ messages:
 
 Running the task creates missing prompts, updates metadata, and creates a new prompt version only when messages, model, or model parameters changed.
 
+## Batches
+
+Send requests through the [OpenAI Responses Batch API](https://platform.openai.com/docs/guides/batch) for roughly half the cost when latency doesn't matter. LlmLogs persists each request, groups pending requests into a provider batch, reconciles results, and records a trace per request — so batched work shows up in the dashboard alongside synchronous calls.
+
+Batch support uses the [`ruby_llm-responses_api`](https://rubygems.org/gems/ruby_llm-responses_api) provider. Add it to your app's Gemfile:
+
+```ruby
+gem "ruby_llm-responses_api"
+```
+
+### Enqueue a Request
+
+Requests are persisted immediately and grouped by `purpose` + `model` when submitted:
+
+```ruby
+LlmLogs::Batch.enqueue(
+  purpose: "chat_summary",
+  model: "gpt-4.1-mini",
+  instructions: "Summarize the conversation in two sentences.",
+  input: conversation_text,
+  schema: SummarySchema,          # optional RubyLLM::Schema for structured output
+  routing: { conversation_id: 42 }, # your keys, echoed into the trace metadata
+  temperature: 0.2                  # optional
+)
+```
+
+`routing` is arbitrary metadata you control. It rides along with the request and is copied onto the recorded trace, so you can trace a result back to your own records.
+
+### Handle Results
+
+Register one handler per `purpose`. The gem owns the batch lifecycle; your app owns what happens with each result:
+
+```ruby
+# config/initializers/llm_logs.rb
+LlmLogs.register_batch_handler("chat_summary", ChatSummaryHandler.new)
+
+class ChatSummaryHandler
+  # Called once a request succeeds. `message` is the RubyLLM::Message.
+  def call(request, message)
+    Conversation.find(request.routing["conversation_id"])
+      .update!(summary: message.content)
+  end
+
+  # Called when a request fails or its batch expires.
+  def on_failure(request, error)
+    Rails.logger.warn("[chat_summary] #{request.custom_id} failed: #{error}")
+  end
+end
+```
+
+A request is marked `succeeded` only after its handler completes; a handler that raises leaves the request `failed` with the error visible in the dashboard, so a result is never silently lost.
+
+### Submit and Reconcile
+
+Two background jobs drive the lifecycle — schedule them on your own cadence (e.g. via cron, `solid_queue` recurring tasks, or `sidekiq-cron`):
+
+```ruby
+# Group this purpose's pending requests into provider batches and submit them.
+LlmLogs::Batch::FlushJob.perform_later("chat_summary")
+
+# Reconcile every in-flight batch: fetch results, run handlers, recover stale claims.
+LlmLogs::Batch::PollJob.perform_later
+```
+
+`FlushJob` claims pending rows with `FOR UPDATE SKIP LOCKED`, so concurrent runs never double-submit. `PollJob` reconciles all unfinished batches and recovers requests stranded by an interrupted submission. Both are idempotent at the request level — already-resolved requests are skipped on re-run.
+
 ## Web UI
 
 Browse traces and manage prompts at `/llm_logs`.
@@ -187,6 +253,8 @@ Browse traces and manage prompts at `/llm_logs`.
 **Traces** — list with filtering by status, drill into hierarchical span trees with collapsible input/output.
 
 **Prompts** — CRUD with Mustache template editor, model configuration, and version history.
+
+**Batches** — list batches with status and request counts, drill into per-request results, tokens, routing metadata, and linked traces.
 
 ## Configuration
 
@@ -197,6 +265,8 @@ LlmLogs.setup do |config|
   config.retention_days = 30                                 # for future cleanup job
   config.prompts_source_path = Rails.root.join("db/data/prompts")
   config.prompt_subfolders = %w[skills fragments templates]
+  config.batch_enabled = true                                # enable the batch API integration
+  config.batch_provider = :openai_responses                  # batch backend
 end
 ```
 

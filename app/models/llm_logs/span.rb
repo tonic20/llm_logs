@@ -20,10 +20,18 @@ module LlmLogs
     end
 
     def record_response(message)
-      self.output = { content: message.content.to_s }
+      self.output = { content: serialize_content(message.content) }
       self.input_tokens = message.input_tokens
       self.output_tokens = message.output_tokens
       self.cached_tokens = message.cached_tokens
+    end
+
+    # Structured (schema) responses arrive as a Hash/Array; keep them as-is so the
+    # JSON `output` column stores real JSON and the UI renders nested fields. Calling
+    # `.to_s` here would serialize a Hash with Ruby inspect syntax ("key" => "value"),
+    # which is not valid JSON and shows up as an escaped blob in the dashboard.
+    def serialize_content(content)
+      content.is_a?(Hash) || content.is_a?(Array) ? content : content.to_s
     end
 
     def record_error(exception)

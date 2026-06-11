@@ -25,4 +25,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "diffy", "~> 3.4"
   spec.add_dependency "kramdown", "~> 2.5"
   spec.add_dependency "kramdown-parser-gfm", "~> 1.1"
+
+  spec.add_development_dependency "ruby_llm", "~> 1.16"
+  spec.add_development_dependency "ruby_llm-responses_api", "~> 0.6"
+  spec.add_development_dependency "webmock", "~> 3.0"
 end

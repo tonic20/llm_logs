@@ -1,6 +1,7 @@
 <div class="mb-6">
+  <%= link_to "← Traces", traces_path, class: "text-sm text-indigo-600 hover:text-indigo-900" %>
   <div class="flex items-center justify-between">
-    <div>
+    <div class="mt-2">
       <div class="flex items-center space-x-3">
         <h1 class="text-2xl font-bold text-gray-900"><%= @trace.name %></h1>
         <% status_colors = { "running" => "bg-blue-100 text-blue-800", "completed" => "bg-green-100 text-green-800", "error" => "bg-red-100 text-red-800" } %>
@@ -19,11 +20,14 @@
         </p>
       <% end %>
     </div>
-    <%= link_to "Back to traces", traces_path, class: "text-sm text-gray-600 hover:text-gray-900" %>
   </div>
 </div>
 
-<div class="grid grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-6 gap-4 mb-6">
+  <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
+    <dt class="text-xs font-medium text-gray-500 uppercase">Model</dt>
+    <dd class="text-lg font-semibold text-gray-900 mt-1 break-words"><%= @models.join(", ").presence || "—" %></dd>
+  </div>
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Spans</dt>
     <dd class="text-2xl font-semibold text-gray-900 mt-1"><%= @trace.spans.count %></dd>

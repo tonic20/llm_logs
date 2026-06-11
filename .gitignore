@@ -72,3 +72,5 @@ spec/dummy/log/
 # Claude Code
 .claude/
 llm_logs-*.gem
+
+.superpowers

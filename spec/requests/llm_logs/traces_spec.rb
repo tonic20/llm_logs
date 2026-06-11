@@ -63,6 +63,8 @@ RSpec.describe "LlmLogs::Traces", type: :request do
     it "renders the trace detail with span tree" do
       get "/llm_logs/traces/#{trace.id}"
       expect(response).to have_http_status(:ok)
+      expect(response.body).to include("← Traces")
+      expect(response.body).not_to include("Back to traces")
       expect(response.body).to include("test_trace")
       expect(response.body).to include("chat.complete")
       expect(response.body).to include("claude-sonnet-4")

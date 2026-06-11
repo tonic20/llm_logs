@@ -5,6 +5,8 @@ LlmLogs::Engine.routes.draw do
     resources :spans, only: [:show]
   end
 
+  resources :batches, only: [:index, :show]
+
   resources :prompts do
     resources :versions, only: [:index, :show, :destroy], controller: "prompt_versions" do
       member do

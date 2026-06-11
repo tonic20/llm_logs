@@ -38,6 +38,22 @@ module LlmLogs
     configuration.retention_days = retention_days
   end
 
+  def self.batch_enabled?
+    configuration.batch_enabled
+  end
+
+  def self.batch_provider
+    configuration.batch_provider
+  end
+
+  def self.register_batch_handler(purpose, handler)
+    LlmLogs::Batch::HandlerRegistry.register(purpose, handler)
+  end
+
+  def self.batch_handler(purpose)
+    LlmLogs::Batch::HandlerRegistry.resolve(purpose)
+  end
+
   def self.trace(name, **options, &block)
     LlmLogs::Tracer.start_trace(name, **options, &block)
   end

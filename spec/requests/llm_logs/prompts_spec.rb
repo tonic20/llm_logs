@@ -89,6 +89,7 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
 
       get "/llm_logs/prompts/#{prompt.id}"
       expect(response).to have_http_status(:ok)
+      expect(response.body).to include("← Prompts")
       expect(response.body).to include("Greeting")
       expect(response.body).to include("Hello {{name}}")
     end

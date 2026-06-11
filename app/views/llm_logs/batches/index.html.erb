@@ -1,0 +1,47 @@
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Batches</h1>
+  <%= form_tag batches_path, method: :get, class: "flex items-center space-x-2" do %>
+    <select name="status" class="rounded-md border-gray-300 text-sm py-1.5 px-3 bg-white border shadow-sm">
+      <option value="">All statuses</option>
+      <% LlmLogs::Batch.statuses.keys.each do |status| %>
+        <option value="<%= status %>" <%= 'selected' if params[:status] == status %>><%= status %></option>
+      <% end %>
+    </select>
+    <button type="submit" class="bg-gray-900 text-white px-3 py-1.5 rounded-md text-sm hover:bg-gray-700">Filter</button>
+  <% end %>
+</div>
+
+<div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg overflow-hidden">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Purpose</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">OpenAI Batch</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Requests</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200">
+      <% status_colors = { "pending" => "bg-gray-100 text-gray-800", "submitted" => "bg-yellow-100 text-yellow-800", "completed" => "bg-blue-100 text-blue-800", "reconciled" => "bg-green-100 text-green-800", "failed" => "bg-red-100 text-red-800", "expired" => "bg-red-100 text-red-800" } %>
+      <% @batches.each do |batch| %>
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 text-sm"><%= link_to batch.purpose, batch_path(batch), class: "text-indigo-600 hover:text-indigo-900 font-medium" %></td>
+          <td class="px-4 py-3 text-sm text-gray-500"><%= batch.model %></td>
+          <td class="px-4 py-3 text-sm text-gray-500 font-mono"><%= batch.openai_batch_id %></td>
+          <td class="px-4 py-3 text-sm text-gray-500 text-right"><%= batch.request_count %></td>
+          <td class="px-4 py-3 text-sm">
+            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium <%= status_colors[batch.status] %>"><%= batch.status %></span>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-500"><%= batch.submitted_at&.strftime('%b %d %H:%M') %></td>
+        </tr>
+      <% end %>
+      <% if @batches.empty? %>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">No batches found.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<%= paginate @batches, theme: "tailwind" %>

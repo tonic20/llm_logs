@@ -114,6 +114,8 @@
           <div class="flex space-x-1">
             <%= link_to "Traces", llm_logs.traces_path,
               class: "px-3 py-2 rounded-md text-sm font-medium #{request.path.start_with?(llm_logs.traces_path) || request.path == llm_logs.root_path ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" %>
+            <%= link_to "Batches", llm_logs.batches_path,
+              class: "px-3 py-2 rounded-md text-sm font-medium #{request.path.start_with?(llm_logs.batches_path) ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" %>
             <%= link_to "Prompts", llm_logs.prompts_path,
               class: "px-3 py-2 rounded-md text-sm font-medium #{request.path.start_with?(llm_logs.prompts_path) ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" %>
           </div>

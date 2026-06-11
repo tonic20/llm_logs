@@ -1,6 +1,7 @@
 <div class="mb-6">
+  <%= link_to "← Prompts", prompts_path, class: "text-sm text-indigo-600 hover:text-indigo-900" %>
   <div class="flex items-center justify-between">
-    <div>
+    <div class="mt-2">
       <h1 class="text-2xl font-bold text-gray-900"><%= @prompt.name %></h1>
       <p class="text-sm text-gray-500 mt-1">
         <span class="font-mono"><%= @prompt.slug %></span>

@@ -10,9 +10,50 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 6) do
+ActiveRecord::Schema[8.1].define(version: 8) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "llm_logs_batch_requests", force: :cascade do |t|
+    t.bigint "batch_id"
+    t.decimal "cost", precision: 10, scale: 6
+    t.datetime "created_at", null: false
+    t.string "custom_id", null: false
+    t.text "error"
+    t.integer "input_tokens"
+    t.string "model", null: false
+    t.integer "output_tokens"
+    t.jsonb "payload", default: {}, null: false
+    t.string "purpose", null: false
+    t.text "result_content"
+    t.jsonb "routing", default: {}, null: false
+    t.string "status", default: "pending", null: false
+    t.bigint "trace_id"
+    t.datetime "updated_at", null: false
+    t.index ["batch_id"], name: "index_llm_logs_batch_requests_on_batch_id"
+    t.index ["custom_id"], name: "index_llm_logs_batch_requests_on_custom_id", unique: true
+    t.index ["purpose", "status"], name: "index_llm_logs_batch_requests_on_purpose_and_status"
+  end
+
+  create_table "llm_logs_batches", force: :cascade do |t|
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "model", null: false
+    t.string "openai_batch_id"
+    t.string "openai_error_file_id"
+    t.string "openai_output_file_id"
+    t.string "provider", default: "openai_responses", null: false
+    t.string "purpose", null: false
+    t.datetime "reconciled_at"
+    t.integer "request_count", default: 0, null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "submitted_at"
+    t.datetime "updated_at", null: false
+    t.index ["openai_batch_id"], name: "index_llm_logs_batches_on_openai_batch_id", unique: true
+    t.index ["purpose"], name: "index_llm_logs_batches_on_purpose"
+    t.index ["status"], name: "index_llm_logs_batches_on_status"
+  end
 
   create_table "llm_logs_prompt_versions", force: :cascade do |t|
     t.text "changelog"
@@ -86,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 6) do
     t.index ["status"], name: "index_llm_logs_traces_on_status"
   end
 
+  add_foreign_key "llm_logs_batch_requests", "llm_logs_batches", column: "batch_id"
   add_foreign_key "llm_logs_prompt_versions", "llm_logs_prompts", column: "prompt_id"
   add_foreign_key "llm_logs_spans", "llm_logs_spans", column: "parent_span_id"
   add_foreign_key "llm_logs_spans", "llm_logs_traces", column: "trace_id"

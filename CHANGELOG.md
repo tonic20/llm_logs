@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-06-11
+
+### Added
+- OpenAI Responses Batch API support: requests are persisted, grouped into provider
+  batches, submitted, reconciled, and recorded as a trace per request — so batched work
+  appears in the dashboard alongside synchronous calls. Roughly half the cost when
+  latency doesn't matter.
+- Purpose-based result handlers: register one handler per purpose to route each result
+  (and failure) into your app. A request is marked succeeded only after its handler
+  completes, so failures stay visible instead of being silently lost.
+- Background flush and poll jobs with race-safe request claiming (`FOR UPDATE SKIP
+  LOCKED`) and recovery of requests stranded by an interrupted submission.
+- Batches dashboard for browsing batches and per-request results, tokens, metadata, and
+  linked traces.
+- Batch configuration options (`batch_enabled`, `batch_provider`).
+
+### Changed
+- Trace names identify the operation consistently across synchronous and batch
+  execution, with execution mode recorded in trace metadata.
+- Trace detail pages show the LLM model as a summary card; it was previously visible
+  only by opening an individual span.
+- Pinned the `ruby_llm` development dependency to `~> 1.16`.
+
+### Fixed
+- Structured (schema) LLM responses are stored and displayed as JSON instead of Ruby
+  inspect syntax (`"key" => "value"`), which previously rendered as an escaped,
+  unparseable blob in the dashboard.
+
 ## [0.1.6] - 2026-06-04
 
 ### Fixed

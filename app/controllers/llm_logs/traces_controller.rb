@@ -13,6 +13,7 @@ module LlmLogs
     def show
       @trace = Trace.includes(prompt_version: :prompt).find(params[:id])
       @root_spans = @trace.root_spans
+      @models = @trace.spans.where(span_type: "llm").distinct.pluck(:model).compact
     end
 
   end
