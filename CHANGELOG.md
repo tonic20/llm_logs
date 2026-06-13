@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2026-06-13
+
+### Added
+- Traces index links each batched trace to its batch. When a trace was produced by a
+  batch request, a small `#<batch id>` link appears next to the trace name so you can
+  jump straight to the batch and see its sibling traces.
+- Batches index shows a leading `ID` column (`#<batch id>`) so the `#<batch id>` link
+  on the traces index can be matched back to a row in the batches list.
+- Traces index shows a leading `ID` column (`#<trace id>`) linking to the trace.
+- Batch detail page links each request to its trace by id (`#<trace id>`) instead of a
+  generic "trace" label, matching the `#<id>` link style used across the dashboard.
+
 ## [0.2.2] - 2026-06-11
 
 ### Added

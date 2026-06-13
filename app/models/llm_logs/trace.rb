@@ -1,6 +1,7 @@
 module LlmLogs
   class Trace < ApplicationRecord
     has_many :spans, dependent: :destroy
+    has_one :batch_request, class_name: "LlmLogs::BatchRequest", dependent: :nullify
     belongs_to :prompt_version, class_name: "LlmLogs::PromptVersion", optional: true
 
     validates :name, presence: true

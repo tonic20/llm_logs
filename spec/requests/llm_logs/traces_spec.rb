@@ -36,6 +36,30 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       get "/llm_logs"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("test_trace")
+      expect(response.body).to include("##{trace.id}")
+    end
+
+    it "links a batched trace to its batch" do
+      batch = LlmLogs::Batch.create!(purpose: "eval_judge", model: "gpt-5.4-mini")
+      LlmLogs::BatchRequest.create!(
+        batch: batch,
+        custom_id: "req_abc123",
+        purpose: "eval_judge",
+        model: "gpt-5.4-mini",
+        status: "succeeded",
+        trace_id: trace.id
+      )
+
+      get "/llm_logs"
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("/llm_logs/batches/#{batch.id}")
+      expect(response.body).to include("##{batch.id}")
+    end
+
+    it "does not render a batch link for a trace without a batch" do
+      get "/llm_logs"
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("/llm_logs/batches/")
     end
 
     it "filters traces by prompt_version_id and shows filter banner" do

@@ -1,7 +1,7 @@
 module LlmLogs
   class TracesController < ApplicationController
     def index
-      @traces = Trace.recent
+      @traces = Trace.recent.includes(batch_request: :batch)
       @traces = @traces.by_status(params[:status]) if params[:status].present?
       if params[:prompt_version_id].present?
         @traces = @traces.where(prompt_version_id: params[:prompt_version_id])

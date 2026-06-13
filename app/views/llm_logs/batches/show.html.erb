@@ -35,7 +35,7 @@
             </dl>
           </td>
           <td class="px-4 py-3 text-sm">
-            <%= link_to "trace", trace_path(request.trace_id), class: "text-indigo-600 hover:text-indigo-900" if request.trace_id %>
+            <%= link_to "##{request.trace_id}", trace_path(request.trace_id), class: "text-indigo-600 hover:text-indigo-900 font-mono" if request.trace_id %>
           </td>
           <td class="px-4 py-3 text-xs text-red-600"><%= request.error %></td>
         </tr>
