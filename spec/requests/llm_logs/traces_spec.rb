@@ -62,9 +62,9 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       expect(response.body).not_to include("/llm_logs/batches/")
     end
 
-    it "paginates using the configured traces_page_size" do
-      original = LlmLogs.traces_page_size
-      LlmLogs.traces_page_size = 1
+    it "paginates using the configured page_size" do
+      original = LlmLogs.page_size
+      LlmLogs.page_size = 1
       LlmLogs::Trace.create!(name: "second_trace", status: "completed", started_at: Time.current)
 
       get "/llm_logs"
@@ -73,7 +73,7 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       page = Nokogiri::HTML(response.body)
       expect(page.css("tbody tr").size).to eq(1)
     ensure
-      LlmLogs.traces_page_size = original
+      LlmLogs.page_size = original
     end
 
     it "filters traces by prompt_version_id and shows filter banner" do

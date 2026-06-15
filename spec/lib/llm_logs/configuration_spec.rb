@@ -17,7 +17,7 @@ RSpec.describe LlmLogs::Configuration do
       config.retention_days = 90
       config.prompts_source_path = "db/data/prompts"
       config.prompt_subfolders = %w[agents fragments]
-      config.traces_page_size = 20
+      config.page_size = 20
     end
 
     expect(LlmLogs.enabled).to eq(false)
@@ -26,12 +26,12 @@ RSpec.describe LlmLogs::Configuration do
     expect(LlmLogs.retention_days).to eq(90)
     expect(LlmLogs.configuration.prompts_source_path).to eq("db/data/prompts")
     expect(LlmLogs.configuration.prompt_subfolders).to eq(%w[agents fragments])
-    expect(LlmLogs.traces_page_size).to eq(20)
+    expect(LlmLogs.page_size).to eq(20)
   end
 
-  it "defaults the traces page size to 50" do
-    expect(LlmLogs::Configuration.new.traces_page_size).to eq(50)
-    expect(LlmLogs.traces_page_size).to eq(50)
+  it "defaults the page size to 50" do
+    expect(LlmLogs::Configuration.new.page_size).to eq(50)
+    expect(LlmLogs.page_size).to eq(50)
   end
 
   it "does not expose a separate configure entrypoint" do

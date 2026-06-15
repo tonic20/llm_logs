@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2026-06-15
+
+### Changed
+- Replaced the `traces_page_size` option (added in 0.2.4) with a single `page_size`
+  option that controls rows per page on **all** index pages — traces, batches, batch
+  requests, and prompts. Defaults to 50. The previously distinct per-page sizes (batch
+  requests 100, prompts 25) now follow this single value.
+
 ## [0.2.4] - 2026-06-15
 
 ### Added

@@ -8,7 +8,7 @@ module LlmLogs
       @direction = params[:direction] == "desc" ? "desc" : "asc"
       scope = Prompt.order(SORT_COLUMNS.fetch(@sort) => @direction.to_sym).includes(:versions)
       scope = scope.with_tag(tag) if tag
-      @prompts    = scope.page(params[:page]).per(25)
+      @prompts    = scope.page(params[:page]).per(LlmLogs.page_size)
       @active_tag = tag
       @all_tags   = Prompt.pluck(:tags).flatten.compact.uniq.sort
     end
