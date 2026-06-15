@@ -267,6 +267,7 @@ LlmLogs.setup do |config|
   config.prompt_subfolders = %w[skills fragments templates]
   config.batch_enabled = true                                # enable the batch API integration
   config.batch_provider = :openai_responses                  # batch backend
+  config.traces_page_size = 50                               # rows per page on the traces index
 end
 ```
 

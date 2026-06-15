@@ -38,6 +38,14 @@ module LlmLogs
     configuration.retention_days = retention_days
   end
 
+  def self.traces_page_size
+    configuration.traces_page_size
+  end
+
+  def self.traces_page_size=(traces_page_size)
+    configuration.traces_page_size = traces_page_size
+  end
+
   def self.batch_enabled?
     configuration.batch_enabled
   end

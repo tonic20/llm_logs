@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2026-06-15
+
+### Added
+- `traces_page_size` configuration option to control how many rows the traces index
+  shows per page (defaults to 50, the previous hard-coded value).
+
 ## [0.2.3] - 2026-06-13
 
 ### Added

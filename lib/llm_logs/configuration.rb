@@ -1,7 +1,7 @@
 module LlmLogs
   class Configuration
     attr_accessor :enabled, :auto_instrument, :retention_days, :prompts_source_path, :prompt_subfolders,
-                  :batch_enabled, :batch_provider
+                  :batch_enabled, :batch_provider, :traces_page_size
 
     def initialize
       @enabled             = true
@@ -11,6 +11,7 @@ module LlmLogs
       @prompt_subfolders   = %w[skills fragments templates]
       @batch_enabled       = true
       @batch_provider      = :openai_responses
+      @traces_page_size    = 50
     end
   end
 

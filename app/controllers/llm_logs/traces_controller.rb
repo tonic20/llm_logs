@@ -7,7 +7,7 @@ module LlmLogs
         @traces = @traces.where(prompt_version_id: params[:prompt_version_id])
         @filter_version = PromptVersion.find_by(id: params[:prompt_version_id])
       end
-      @traces = @traces.page(params[:page]).per(50)
+      @traces = @traces.page(params[:page]).per(LlmLogs.traces_page_size)
     end
 
     def show
