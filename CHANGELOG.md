@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2026-06-30
+
+### Fixed
+- `LlmLogs::Batch.batchable?` now checks whether the configured `batch_provider`
+  can actually serve the given model, instead of returning `true` for every model
+  whenever batching was enabled. Models that don't resolve under `batch_provider`
+  (e.g. AWS Bedrock / Anthropic models) are now reported as not batchable, so
+  callers run them synchronously rather than enqueueing work that would fail at
+  submit time.
+
 ## [0.2.5] - 2026-06-15
 
 ### Changed

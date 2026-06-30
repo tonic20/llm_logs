@@ -26,4 +26,18 @@ RSpec.describe "LlmLogs::Batch.enqueue" do
   ensure
     LlmLogs.configuration.batch_enabled = true
   end
+
+  it "batchable? is true when the batch provider can serve the model" do
+    allow(RubyLLM::Models).to receive(:resolve).and_return([double("model"), double("provider")])
+
+    expect(LlmLogs::Batch.batchable?("gpt-5.4-mini")).to be(true)
+    expect(RubyLLM::Models).to have_received(:resolve)
+      .with("gpt-5.4-mini", hash_including(provider: LlmLogs.batch_provider, assume_exists: false))
+  end
+
+  it "batchable? is false when the model is not servable by the batch provider (e.g. Bedrock/Anthropic)" do
+    allow(RubyLLM::Models).to receive(:resolve).and_raise(RubyLLM::ModelNotFoundError)
+
+    expect(LlmLogs::Batch.batchable?("anthropic.claude-haiku-4-5")).to be(false)
+  end
 end

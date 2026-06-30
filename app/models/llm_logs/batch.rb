@@ -44,8 +44,23 @@ module LlmLogs
 
     def self.batchable?(model)
       return false unless LlmLogs.batch_enabled?
+      return false unless defined?(RubyLLM::Providers::OpenAIResponses)
 
-      !defined?(RubyLLM::Providers::OpenAIResponses).nil?
+      servable_by_batch_provider?(model)
+    end
+
+    # The batch path submits via RubyLLM.batch(provider: batch_provider). A model is
+    # only batchable if that provider can actually serve it -- i.e. the model resolves
+    # under batch_provider. Models that belong to a different provider (e.g. Bedrock /
+    # Anthropic) don't resolve there, so they return false and the caller runs them
+    # synchronously instead of enqueueing work that would fail at submit time.
+    def self.servable_by_batch_provider?(model)
+      RubyLLM::Models.resolve(
+        model, provider: LlmLogs.batch_provider, assume_exists: false, config: RubyLLM.config
+      )
+      true
+    rescue RubyLLM::ModelNotFoundError
+      false
     end
   end
 end
