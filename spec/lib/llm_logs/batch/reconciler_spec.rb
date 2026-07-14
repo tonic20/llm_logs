@@ -16,13 +16,6 @@ RSpec.describe LlmLogs::Batch::Reconciler do
   let(:rubyllm_batch) { instance_double(RubyLLM::Providers::OpenAIResponses::Batch) }
 
   before do
-    # LlmLogs.batch_adapters holds one adapter instance for the life of the process, and
-    # the adapter memoizes its resumed remote handle per provider_batch_id. Every example
-    # here reuses the same "batch_abc" id with a brand-new `rubyllm_batch` double, so
-    # without a fresh adapter each time, the second example onward would resolve the
-    # first example's now-dead double instead of its own. Re-register a clean instance
-    # per example so the memoization cache never survives across examples.
-    LlmLogs.register_batch_adapter(:openai_responses, LlmLogs::Batch::Adapters::OpenaiResponses.new)
     LlmLogs.register_batch_handler("chat_summary", handler)
     allow(RubyLLM).to receive(:batch).with(id: "batch_abc", provider: :openai_responses).and_return(rubyllm_batch)
     allow(rubyllm_batch).to receive(:status).and_return("completed")
@@ -68,7 +61,7 @@ RSpec.describe LlmLogs::Batch::Reconciler do
   end
 
   it "fails all open requests and invokes on_failure when the batch failed" do
-    allow(rubyllm_batch).to receive(:status).and_return("failed")
+    expect(rubyllm_batch).to receive(:status).once.and_return("failed")
     allow(handler).to receive(:on_failure)
 
     described_class.new(batch).call

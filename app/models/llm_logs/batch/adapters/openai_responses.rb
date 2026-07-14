@@ -36,12 +36,12 @@ module LlmLogs
 
         private
 
-        # Memoized per provider_batch_id, NOT a single ivar: LlmLogs.batch_adapters holds
-        # one shared instance of this adapter reused across every batch, so a plain
-        # `@resume ||= ...` would cache the first batch's remote handle and wrongly reuse
-        # it for every later batch polled/reconciled through this same adapter instance.
+        # No memoization: LlmLogs.batch_adapters holds one shared instance of this adapter
+        # for the life of the process, so caching the resumed handle here would go stale
+        # for a long-running PollJob worker (in-progress batches would never re-fetch a
+        # later terminal status) and would grow unbounded. Build a fresh handle every call.
         def resume(batch)
-          (@resume ||= {})[batch.provider_batch_id] ||= RubyLLM.batch(id: batch.provider_batch_id, provider: PROVIDER)
+          RubyLLM.batch(id: batch.provider_batch_id, provider: PROVIDER)
         end
 
         def schema_extra(schema)

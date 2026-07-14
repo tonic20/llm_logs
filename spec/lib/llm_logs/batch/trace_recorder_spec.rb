@@ -25,6 +25,7 @@ RSpec.describe LlmLogs::Batch::TraceRecorder do
     span = trace.spans.first
     expect(span.span_type).to eq("llm")
     expect(span.model).to eq("gpt-5.4-mini")
+    expect(span.provider).to eq("openai_responses")
     expect(span.output).to eq({ "content" => "the summary" })
   end
 
