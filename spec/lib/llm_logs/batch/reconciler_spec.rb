@@ -5,7 +5,8 @@ RSpec.describe LlmLogs::Batch::Reconciler do
   let(:message) { instance_double(RubyLLM::Message, content: "summary", input_tokens: 10, output_tokens: 5, model_id: "gpt-5.4-mini") }
 
   let!(:batch) do
-    LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted", openai_batch_id: "batch_abc", request_count: 1)
+    LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted",
+                           openai_batch_id: "batch_abc", provider_batch_id: "batch_abc", request_count: 1)
   end
   let!(:request) do
     batch.requests.create!(custom_id: "req_1", purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted",
@@ -15,6 +16,13 @@ RSpec.describe LlmLogs::Batch::Reconciler do
   let(:rubyllm_batch) { instance_double(RubyLLM::Providers::OpenAIResponses::Batch) }
 
   before do
+    # LlmLogs.batch_adapters holds one adapter instance for the life of the process, and
+    # the adapter memoizes its resumed remote handle per provider_batch_id. Every example
+    # here reuses the same "batch_abc" id with a brand-new `rubyllm_batch` double, so
+    # without a fresh adapter each time, the second example onward would resolve the
+    # first example's now-dead double instead of its own. Re-register a clean instance
+    # per example so the memoization cache never survives across examples.
+    LlmLogs.register_batch_adapter(:openai_responses, LlmLogs::Batch::Adapters::OpenaiResponses.new)
     LlmLogs.register_batch_handler("chat_summary", handler)
     allow(RubyLLM).to receive(:batch).with(id: "batch_abc", provider: :openai_responses).and_return(rubyllm_batch)
     allow(rubyllm_batch).to receive(:status).and_return("completed")

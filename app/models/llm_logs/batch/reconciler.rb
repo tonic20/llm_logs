@@ -9,12 +9,11 @@ module LlmLogs
       end
 
       def call
-        rubyllm_batch = RubyLLM.batch(id: @batch.openai_batch_id, provider: LlmLogs.batch_provider)
-        status = rubyllm_batch.status
-
+        adapter = LlmLogs::Batch.adapter_for(@batch.provider)
+        status = adapter.terminal_status(@batch)
         case status
         when "completed"
-          reconcile_completed(rubyllm_batch)
+          reconcile_completed(adapter)
         when "failed", "expired", "cancelled"
           fail_all(status)
         end
@@ -23,9 +22,9 @@ module LlmLogs
 
       private
 
-      def reconcile_completed(rubyllm_batch)
-        results = rubyllm_batch.results
-        error_ids = rubyllm_batch.errors.filter_map { |e| e["custom_id"] }
+      def reconcile_completed(adapter)
+        results = adapter.results(@batch)
+        error_ids = adapter.error_ids(@batch)
 
         @batch.update!(status: :completed, completed_at: Time.current)
 
@@ -42,7 +41,7 @@ module LlmLogs
       end
 
       def reconcile_success(request, message)
-        trace = TraceRecorder.record(request: request, message: message)
+        trace = TraceRecorder.record(request: request, message: message, provider: @batch.provider)
         request.assign_attributes(
           result_content: result_content_for(message.content),
           input_tokens: message.input_tokens,

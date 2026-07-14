@@ -14,7 +14,7 @@ RSpec.describe LlmLogs::Batch::TraceRecorder do
 
   it "creates a completed trace with an llm span carrying tokens" do
     request.update!(routing: { "chat_id" => 7, "execution_mode" => "spoofed" })
-    trace = described_class.record(request: request, message: message)
+    trace = described_class.record(request: request, message: message, provider: "openai_responses")
 
     expect(trace).to be_a(LlmLogs::Trace)
     expect(trace.name).to eq("chat_summary")
@@ -30,7 +30,7 @@ RSpec.describe LlmLogs::Batch::TraceRecorder do
 
   it "links the trace to a prompt_version_id from routing when present" do
     request.update!(routing: { "prompt_version_id" => nil })
-    trace = described_class.record(request: request, message: message)
+    trace = described_class.record(request: request, message: message, provider: "openai_responses")
     expect(trace.prompt_version_id).to be_nil
   end
 end

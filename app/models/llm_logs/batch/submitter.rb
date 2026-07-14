@@ -46,30 +46,20 @@ module LlmLogs
       end
 
       def submit(batch)
-        rubyllm_batch = RubyLLM.batch(model: @model, provider: LlmLogs.batch_provider)
-        batch.requests.each do |request|
-          payload = request.payload
-          rubyllm_batch.add(
-            payload["input"],
-            id: request.custom_id,
-            instructions: payload["instructions"],
-            temperature: payload["temperature"],
-            **schema_extra(payload["schema"])
-          )
-        end
-        rubyllm_batch.create!
-        batch.update!(openai_batch_id: rubyllm_batch.id, status: :submitted, submitted_at: Time.current)
+        result = LlmLogs::Batch.adapter_for(batch.provider).submit(batch, batch.requests.to_a)
+        batch.update!(
+          provider_batch_id: result[:provider_batch_id],
+          openai_batch_id: result[:openai_batch_id],
+          provider_metadata: result[:provider_metadata] || {},
+          status: :submitted,
+          submitted_at: Time.current
+        )
       rescue StandardError
         # Release the claim so the requests retry on the next flush, and drop the
         # placeholder batch so it isn't polled. Re-raise so the caller/job sees the error.
         batch.requests.update_all(batch_id: nil, status: :pending)
         batch.destroy
         raise
-      end
-
-      def schema_extra(schema)
-        format = SchemaFormat.call(schema)
-        format ? { text: format } : {}
       end
     end
   end

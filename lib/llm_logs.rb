@@ -62,6 +62,14 @@ module LlmLogs
     LlmLogs::Batch::HandlerRegistry.resolve(purpose)
   end
 
+  def self.batch_adapters
+    @batch_adapters ||= {openai_responses: LlmLogs::Batch::Adapters::OpenaiResponses.new}
+  end
+
+  def self.register_batch_adapter(provider, adapter)
+    batch_adapters[provider.to_sym] = adapter
+  end
+
   def self.trace(name, **options, &block)
     LlmLogs::Tracer.start_trace(name, **options, &block)
   end

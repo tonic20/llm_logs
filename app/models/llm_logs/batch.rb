@@ -42,6 +42,12 @@ module LlmLogs
       Reconciler.new(self).call
     end
 
+    def self.adapter_for(provider)
+      LlmLogs.batch_adapters.fetch(provider.to_sym) do
+        raise ArgumentError, "no batch adapter registered for provider #{provider.inspect}"
+      end
+    end
+
     def self.batchable?(model)
       return false unless LlmLogs.batch_enabled?
       return false unless defined?(RubyLLM::Providers::OpenAIResponses)
