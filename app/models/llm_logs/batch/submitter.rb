@@ -34,7 +34,7 @@ module LlmLogs
 
           batch = LlmLogs::Batch.create!(
             purpose: @purpose,
-            provider: LlmLogs.batch_provider.to_s,
+            provider: LlmLogs::Batch.batch_provider_for(@model).to_s,
             model: @model,
             status: :pending,
             request_count: requests.size,
