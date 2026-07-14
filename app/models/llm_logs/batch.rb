@@ -50,6 +50,35 @@ module LlmLogs
 
     def self.batchable?(model)
       return false unless LlmLogs.batch_enabled?
+
+      !batch_provider_for(model).nil?
+    end
+
+    # Which batch provider (if any) serves this model. Bedrock wins for Claude models when
+    # the Bedrock adapter is configured; otherwise fall back to the OpenAI provider when the
+    # model resolves there; otherwise nil (run synchronously).
+    def self.batch_provider_for(model)
+      return :bedrock if bedrock_serves?(model)
+      return :openai_responses if openai_serves?(model)
+
+      nil
+    end
+
+    # The Bedrock minimum records-per-job floor for this model (0 when Bedrock does not serve it).
+    def self.min_records_for(model)
+      batch_provider_for(model) == :bedrock ? LlmLogs.bedrock_batch.min_records.to_i : 0
+    end
+
+    def self.bedrock_serves?(model)
+      config = LlmLogs.bedrock_batch
+      return false if config.nil?
+      return false unless LlmLogs.batch_adapters.key?(:bedrock)
+
+      matcher = config.model_matcher
+      matcher.respond_to?(:call) ? matcher.call(model.to_s) : matcher.match?(model.to_s)
+    end
+
+    def self.openai_serves?(model)
       return false unless defined?(RubyLLM::Providers::OpenAIResponses)
 
       servable_by_batch_provider?(model)

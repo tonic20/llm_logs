@@ -54,6 +54,10 @@ module LlmLogs
     configuration.batch_provider
   end
 
+  def self.bedrock_batch
+    configuration.bedrock_batch
+  end
+
   def self.register_batch_handler(purpose, handler)
     LlmLogs::Batch::HandlerRegistry.register(purpose, handler)
   end
