@@ -3,11 +3,11 @@
   <h1 class="text-2xl font-bold text-gray-900 mt-2"><%= @batch.purpose %> · <%= @batch.model %></h1>
   <p class="text-sm text-gray-500 mt-1">
     Provider: <span class="font-mono"><%= @batch.provider %></span> ·
-    OpenAI: <span class="font-mono"><%= @batch.openai_batch_id %></span> · status <%= @batch.status %> ·
+    status <%= @batch.status %> ·
     <%= @batch.request_count %> requests
   </p>
   <p class="text-sm text-gray-500 mt-1">
-    Provider batch: <span class="font-mono"><%= @batch.provider_batch_id %></span>
+    Batch ID: <span class="font-mono"><%= @batch.provider_batch_id %></span>
   </p>
   <% if @batch.provider_metadata.present? %>
     <p class="text-sm text-gray-500 mt-1">

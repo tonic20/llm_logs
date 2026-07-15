@@ -3,7 +3,8 @@ require "spec_helper"
 RSpec.describe "LlmLogs::Batches", type: :request do
   let!(:batch) do
     LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.4-mini", status: "reconciled",
-                           openai_batch_id: "batch_abc", request_count: 2, submitted_at: 1.hour.ago)
+                           openai_batch_id: "batch_abc", provider_batch_id: "batch_abc",
+                           request_count: 2, submitted_at: 1.hour.ago)
   end
 
   it "renders the batches index" do
@@ -12,6 +13,12 @@ RSpec.describe "LlmLogs::Batches", type: :request do
     expect(response.body).to include("chat_summary")
     expect(response.body).to include("batch_abc")
     expect(response.body).to include("##{batch.id}")
+  end
+
+  it "labels the batch-id column generically (not provider-specific)" do
+    get "/llm_logs/batches"
+    expect(response.body).to include("Batch ID")
+    expect(response.body).not_to include("OpenAI Batch")
   end
 
   it "shows the provider for each batch" do
@@ -42,6 +49,10 @@ RSpec.describe "LlmLogs::Batches", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("req_1")
     expect(response.body).to include("##{trace.id}")
+    # Batch id shown once, under a generic label — no legacy "OpenAI:" line (which duplicated
+    # it for OpenAI batches and rendered blank for Bedrock).
+    expect(response.body).to include("Batch ID:")
+    expect(response.body).not_to include("OpenAI:")
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("a[href='/llm_logs/traces/#{trace.id}']").text).to eq("##{trace.id}")
     custom_id_header = page.at_css("th[data-column='custom-id']")
