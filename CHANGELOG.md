@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-07-15
+
+### Fixed
+- Batches dashboard: label the batch-id column generically ("Batch ID" instead of "OpenAI
+  Batch") and show the provider-neutral `provider_batch_id`. On the show page, drop the
+  redundant/legacy "OpenAI:" line (it duplicated the id for OpenAI batches and rendered
+  blank for Bedrock).
+
 ## [0.3.0] - 2026-07-14
 
 ### Added
