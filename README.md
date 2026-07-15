@@ -182,9 +182,14 @@ Running the task creates missing prompts, updates metadata, and creates a new pr
 
 ## Batches
 
-Send requests through the [OpenAI Responses Batch API](https://platform.openai.com/docs/guides/batch) for roughly half the cost when latency doesn't matter. LlmLogs persists each request, groups pending requests into a provider batch, reconciles results, and records a trace per request — so batched work shows up in the dashboard alongside synchronous calls.
+Send latency-insensitive requests through a provider's Batch API for roughly half the cost. LlmLogs persists each request, groups pending requests into a provider batch, reconciles results, and records a trace per request — so batched work shows up in the dashboard alongside synchronous calls.
 
-Batch support uses the [`ruby_llm-responses_api`](https://rubygems.org/gems/ruby_llm-responses_api) provider. Add it to your app's Gemfile:
+Two batch backends are supported, selected **per model**:
+
+- **[OpenAI Responses Batch API](https://platform.openai.com/docs/guides/batch)** via [`ruby_llm-responses_api`](https://rubygems.org/gems/ruby_llm-responses_api) — the default for OpenAI models.
+- **[AWS Bedrock Batch API](#aws-bedrock-batches)** (`CreateModelInvocationJob`) for Anthropic Claude models.
+
+Add the OpenAI provider to your app's Gemfile:
 
 ```ruby
 gem "ruby_llm-responses_api"
@@ -246,6 +251,45 @@ LlmLogs::Batch::PollJob.perform_later
 
 `FlushJob` claims pending rows with `FOR UPDATE SKIP LOCKED`, so concurrent runs never double-submit. `PollJob` reconciles all unfinished batches and recovers requests stranded by an interrupted submission. Both are idempotent at the request level — already-resolved requests are skipped on re-run.
 
+### AWS Bedrock batches
+
+Anthropic Claude models can batch through the AWS Bedrock Batch API. Bedrock batching is file-based: LlmLogs writes a JSONL manifest to S3, starts a `CreateModelInvocationJob`, and reads the results back from S3. The enqueue/handler/flush/reconcile flow above is identical — only the backend differs.
+
+Add the AWS SDKs to your app's Gemfile:
+
+```ruby
+gem "aws-sdk-bedrock"
+gem "aws-sdk-s3"
+```
+
+Configure the Bedrock backend and register its adapter, pointing it at an S3 bucket and an IAM role Bedrock can assume:
+
+```ruby
+# config/initializers/llm_logs.rb
+LlmLogs.configuration.bedrock_batch = LlmLogs::Configuration::BedrockBatch.new(
+  role_arn:      "arn:aws:iam::<account>:role/<bedrock-batch-role>", # role Bedrock assumes to read/write S3
+  s3_bucket:     "my-bedrock-batch-bucket",                          # must be in the model's region
+  s3_prefix:     "llm-batch",
+  min_records:   100,                                                # Bedrock's minimum records per job
+  model_matcher: /\Aanthropic\./,                                    # model ids that route to Bedrock
+  region:        "us-east-1"
+)
+LlmLogs.register_batch_adapter(:bedrock, LlmLogs::Batch::Adapters::Bedrock.new)
+```
+
+Provider selection is per model: `LlmLogs::Batch.batch_provider_for(model)` returns `:bedrock` when the adapter is registered and `model_matcher` matches, otherwise the OpenAI backend when the model resolves there, otherwise `nil` (not batchable — run it synchronously). Bedrock enforces a **minimum records per job**, so check `LlmLogs::Batch.min_records_for(model)` and fall back to a synchronous call when a batch would be under the floor.
+
+The adapter builds its AWS clients from the ambient credential chain by default; inject your own to authenticate explicitly:
+
+```ruby
+LlmLogs::Batch::Adapters::Bedrock.new(
+  s3:      Aws::S3::Client.new(region: "us-east-1", credentials: creds),
+  bedrock: Aws::Bedrock::Client.new(region: "us-east-1", credentials: creds)
+)
+```
+
+**Prerequisites:** an S3 bucket in the model's region, and an IAM service role trusting `bedrock.amazonaws.com` with `s3:GetObject`/`s3:PutObject` on the bucket prefix. The principal that calls the API needs `bedrock:CreateModelInvocationJob`, `bedrock:GetModelInvocationJob`, and `iam:PassRole` on that role.
+
 ## Web UI
 
 Browse traces and manage prompts at `/llm_logs`.
@@ -266,7 +310,7 @@ LlmLogs.setup do |config|
   config.prompts_source_path = Rails.root.join("db/data/prompts")
   config.prompt_subfolders = %w[skills fragments templates]
   config.batch_enabled = true                                # enable the batch API integration
-  config.batch_provider = :openai_responses                  # batch backend
+  config.batch_provider = :openai_responses                  # default (OpenAI) backend; Bedrock is registered separately (see Batches)
   config.page_size = 50                                      # rows per page on all index pages
 end
 ```
