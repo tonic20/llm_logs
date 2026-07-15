@@ -27,7 +27,7 @@ module LlmLogs
           input_uri = "s3://#{@config.s3_bucket}/#{key}"
           output_uri = "s3://#{@config.s3_bucket}/#{@config.s3_prefix}/#{batch.id}/out/"
           job = bedrock.create_model_invocation_job(
-            job_name: "llmlogs-#{batch.purpose}-#{batch.id}-#{SecureRandom.hex(4)}",
+            job_name: job_name_for(batch),
             role_arn: @config.role_arn,
             model_id: batch.model,
             input_data_config: {s3_input_data_config: {s3_uri: input_uri}},
@@ -76,6 +76,12 @@ module LlmLogs
         end
 
         private
+
+        # Bedrock jobName allows only [A-Za-z0-9] plus '-', '+', '.'. Purposes such as
+        # "eval_judge" contain underscores, so map any disallowed character to a hyphen.
+        def job_name_for(batch)
+          "llmlogs-#{batch.purpose}-#{batch.id}-#{SecureRandom.hex(4)}".gsub(/[^a-zA-Z0-9+.-]/, "-")
+        end
 
         # One JSONL record: {recordId, modelInput: <native Anthropic Messages body>}.
         def record_for(request)

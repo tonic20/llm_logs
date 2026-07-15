@@ -20,8 +20,12 @@ RSpec.describe LlmLogs::Batch::Adapters::Bedrock do
 
   it "writes a JSONL manifest to S3 and starts a model invocation job" do
     put_calls = []
+    create_calls = []
     s3.stub_responses(:put_object, ->(ctx) { put_calls << ctx.params; {} })
-    bedrock.stub_responses(:create_model_invocation_job, {job_arn: "arn:aws:bedrock:us-east-1:1:model-invocation-job/xyz"})
+    bedrock.stub_responses(:create_model_invocation_job, lambda { |ctx|
+      create_calls << ctx.params
+      {job_arn: "arn:aws:bedrock:us-east-1:1:model-invocation-job/xyz"}
+    })
     request
 
     result = adapter.submit(batch, batch.requests.to_a)
@@ -32,6 +36,13 @@ RSpec.describe LlmLogs::Batch::Adapters::Bedrock do
     expect(line.dig("modelInput", "anthropic_version")).to eq("bedrock-2023-05-31")
     expect(result[:provider_batch_id]).to eq("arn:aws:bedrock:us-east-1:1:model-invocation-job/xyz")
     expect(result[:provider_metadata]["s3_input_uri"]).to start_with("s3://bucket/batch/")
+
+    # jobName must satisfy Bedrock's pattern (no underscores) even though the purpose
+    # "eval_judge" contains one.
+    job_name = create_calls.first[:job_name]
+    expect(job_name).not_to include("_")
+    expect(job_name).to match(/\A[a-zA-Z0-9][a-zA-Z0-9+.-]{0,126}\z/)
+    expect(job_name).to include("eval-judge")
   end
 
   it "maps job status to a terminal status" do
