@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 8) do
+ActiveRecord::Schema[8.1].define(version: 9) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -44,6 +44,8 @@ ActiveRecord::Schema[8.1].define(version: 8) do
     t.string "openai_error_file_id"
     t.string "openai_output_file_id"
     t.string "provider", default: "openai_responses", null: false
+    t.string "provider_batch_id"
+    t.jsonb "provider_metadata", default: {}, null: false
     t.string "purpose", null: false
     t.datetime "reconciled_at"
     t.integer "request_count", default: 0, null: false
@@ -51,6 +53,7 @@ ActiveRecord::Schema[8.1].define(version: 8) do
     t.datetime "submitted_at"
     t.datetime "updated_at", null: false
     t.index ["openai_batch_id"], name: "index_llm_logs_batches_on_openai_batch_id", unique: true
+    t.index ["provider_batch_id"], name: "index_llm_logs_batches_on_provider_batch_id"
     t.index ["purpose"], name: "index_llm_logs_batches_on_purpose"
     t.index ["status"], name: "index_llm_logs_batches_on_status"
   end

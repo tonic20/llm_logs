@@ -8,7 +8,7 @@ module LlmLogs
 
       module_function
 
-      def record(request:, message:)
+      def record(request:, message:, provider:)
         trace = nil
         metadata = request.routing.merge("execution_mode" => "batch")
         LlmLogs.trace(request.purpose, metadata: metadata) do |t|
@@ -20,7 +20,7 @@ module LlmLogs
             name: "batch.complete",
             span_type: "llm",
             model: message.model_id || request.model,
-            provider: LlmLogs.batch_provider.to_s,
+            provider: provider.to_s,
             input: request.payload["input"]
           )
           span.update!(

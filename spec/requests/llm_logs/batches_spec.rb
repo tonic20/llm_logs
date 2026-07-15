@@ -14,6 +14,12 @@ RSpec.describe "LlmLogs::Batches", type: :request do
     expect(response.body).to include("##{batch.id}")
   end
 
+  it "shows the provider for each batch" do
+    LlmLogs::Batch.create!(purpose: "eval_judge", model: "anthropic.claude", provider: "bedrock", status: "submitted", provider_batch_id: "arn:job")
+    get "/llm_logs/batches"
+    expect(response.body).to include("bedrock")
+  end
+
   it "renders a batch show with its requests" do
     expected = "Recognises the collar battery is critically low and tells the owner to charge it. Concise and reassuring."
     trace = LlmLogs::Trace.create!(name: "chat_summary", status: "completed", started_at: Time.current)

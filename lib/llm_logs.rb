@@ -54,12 +54,24 @@ module LlmLogs
     configuration.batch_provider
   end
 
+  def self.bedrock_batch
+    configuration.bedrock_batch
+  end
+
   def self.register_batch_handler(purpose, handler)
     LlmLogs::Batch::HandlerRegistry.register(purpose, handler)
   end
 
   def self.batch_handler(purpose)
     LlmLogs::Batch::HandlerRegistry.resolve(purpose)
+  end
+
+  def self.batch_adapters
+    @batch_adapters ||= {openai_responses: LlmLogs::Batch::Adapters::OpenaiResponses.new}
+  end
+
+  def self.register_batch_adapter(provider, adapter)
+    batch_adapters[provider.to_sym] = adapter
   end
 
   def self.trace(name, **options, &block)

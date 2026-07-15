@@ -5,7 +5,8 @@ RSpec.describe LlmLogs::Batch::Reconciler do
   let(:message) { instance_double(RubyLLM::Message, content: "summary", input_tokens: 10, output_tokens: 5, model_id: "gpt-5.4-mini") }
 
   let!(:batch) do
-    LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted", openai_batch_id: "batch_abc", request_count: 1)
+    LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted",
+                           openai_batch_id: "batch_abc", provider_batch_id: "batch_abc", request_count: 1)
   end
   let!(:request) do
     batch.requests.create!(custom_id: "req_1", purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted",
@@ -60,7 +61,7 @@ RSpec.describe LlmLogs::Batch::Reconciler do
   end
 
   it "fails all open requests and invokes on_failure when the batch failed" do
-    allow(rubyllm_batch).to receive(:status).and_return("failed")
+    expect(rubyllm_batch).to receive(:status).once.and_return("failed")
     allow(handler).to receive(:on_failure)
 
     described_class.new(batch).call

@@ -10,7 +10,7 @@ module LlmLogs
 
       def perform
         recover_stale_claims
-        LlmLogs::Batch.unreconciled.where.not(openai_batch_id: nil).find_each do |batch|
+        LlmLogs::Batch.unreconciled.where.not(provider_batch_id: nil).find_each do |batch|
           batch.reconcile!
         rescue StandardError => e
           Rails.logger.error("[llm_logs] batch #{batch.id} reconcile failed: #{e.class}: #{e.message}")
@@ -21,7 +21,7 @@ module LlmLogs
 
       def recover_stale_claims
         LlmLogs::Batch
-          .where(status: :pending, openai_batch_id: nil)
+          .where(status: :pending, provider_batch_id: nil)
           .where("created_at < ?", STALE_CLAIM_AFTER.ago)
           .find_each do |batch|
             batch.requests.update_all(batch_id: nil, status: :pending)

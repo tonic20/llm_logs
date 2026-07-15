@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-07-14
+
+### Added
+- AWS Bedrock Batch API support via a provider-adapter seam. `LlmLogs::Batch::Adapters::Bedrock`
+  writes a JSONL manifest to S3, starts a `CreateModelInvocationJob`, polls it, and reads the
+  output JSONL back. Configure via `LlmLogs.configuration.bedrock_batch` and
+  `LlmLogs.register_batch_adapter(:bedrock, …)`.
+- Provider-neutral batch columns `provider_batch_id` / `provider_metadata` (migration 009).
+- `LlmLogs::Batch.batch_provider_for` / `min_records_for` — per-model provider resolution and
+  the Bedrock minimum-records floor.
+
+### Changed
+- `Submitter` / `Reconciler` / `TraceRecorder` / `PollJob` route provider-specific work through
+  the resolved adapter instead of calling `RubyLLM.batch` directly. The OpenAI path is unchanged.
+
 ## [0.2.6] - 2026-06-30
 
 ### Fixed

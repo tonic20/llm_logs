@@ -18,6 +18,7 @@ RSpec.describe LlmLogs::Batch::Submitter do
       routing: { chat_id: 1 }
     )
     allow(RubyLLM).to receive(:batch).and_return(fake_batch)
+    allow(LlmLogs::Batch).to receive(:servable_by_batch_provider?).with("gpt-5.4-mini").and_return(true)
   end
 
   it "adds each pending request, creates the batch, and persists it" do
@@ -56,5 +57,42 @@ RSpec.describe LlmLogs::Batch::Submitter do
     expect(request.status).to eq("pending")
     expect(request.batch_id).to be_nil
     expect(LlmLogs::Batch.count).to eq(0)
+  end
+
+  context "with a Bedrock model" do
+    let(:fake_bedrock_adapter) { double("bedrock_adapter") }
+
+    before do
+      LlmLogs.configuration.bedrock_batch = LlmLogs::Configuration::BedrockBatch.new(
+        role_arn: "arn", s3_bucket: "b", s3_prefix: "p", min_records: 1,
+        model_matcher: /\Aanthropic\./, region: "us-east-1"
+      )
+      LlmLogs.register_batch_adapter(:bedrock, fake_bedrock_adapter)
+      allow(fake_bedrock_adapter).to receive(:submit).and_return(
+        provider_batch_id: "arn:job", openai_batch_id: nil, provider_metadata: {}
+      )
+
+      LlmLogs::Batch.enqueue(
+        purpose: "eval_judge", model: "anthropic.claude-sonnet",
+        input: "USER: hi", instructions: "Judge.",
+        schema: { name: "s", strict: true, schema: { type: "object" } },
+        routing: { chat_id: 1 }
+      )
+    end
+
+    after do
+      LlmLogs.configuration.bedrock_batch = nil
+      LlmLogs.batch_adapters.delete(:bedrock)
+    end
+
+    it "routes to the Bedrock adapter and records provider: bedrock on the batch" do
+      batch = LlmLogs::Batch.submit_pending(purpose: "eval_judge", model: "anthropic.claude-sonnet")
+
+      expect(fake_bedrock_adapter).to have_received(:submit).with(batch, instance_of(Array))
+      expect(RubyLLM).not_to have_received(:batch)
+      expect(batch.provider).to eq("bedrock")
+      expect(batch.provider_batch_id).to eq("arn:job")
+      expect(batch.status).to eq("submitted")
+    end
   end
 end
