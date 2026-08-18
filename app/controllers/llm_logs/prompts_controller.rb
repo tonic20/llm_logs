@@ -26,14 +26,14 @@ module LlmLogs
     def create
       @prompt = Prompt.new(prompt_params)
 
-      if @prompt.save
-        if version_params[:messages].present?
-          @prompt.update_content!(**version_params)
-        end
-        redirect_to prompt_path(@prompt), notice: "Prompt created."
-      else
-        render :new, status: :unprocessable_entity
+      ActiveRecord::Base.transaction do
+        @prompt.save!
+        @prompt.update_content!(**version_params) if version_params[:messages].present?
       end
+      redirect_to prompt_path(@prompt), notice: "Prompt created."
+    rescue ActiveRecord::RecordInvalid => e
+      surface_version_errors(e)
+      render :new, status: :unprocessable_entity
     end
 
     def edit
@@ -44,14 +44,15 @@ module LlmLogs
     def update
       @prompt = Prompt.find(params[:id])
 
-      if @prompt.update(prompt_params)
-        if version_params[:messages].present?
-          @prompt.update_content!(**version_params)
-        end
-        redirect_to prompt_path(@prompt), notice: "Prompt updated."
-      else
-        render :edit, status: :unprocessable_entity
+      ActiveRecord::Base.transaction do
+        @prompt.update!(prompt_params)
+        @prompt.update_content!(**version_params) if version_params[:messages].present?
       end
+      redirect_to prompt_path(@prompt), notice: "Prompt updated."
+    rescue ActiveRecord::RecordInvalid => e
+      @current_version = @prompt.current_version
+      surface_version_errors(e)
+      render :edit, status: :unprocessable_entity
     end
 
     def destroy
@@ -68,6 +69,12 @@ module LlmLogs
         raw[:tags] = raw[:tags_input].split(",").map(&:strip).reject(&:blank?)
       end
       raw.except(:tags_input)
+    end
+
+    def surface_version_errors(error)
+      return if error.record == @prompt
+
+      error.record.errors.full_messages.each { |message| @prompt.errors.add(:base, message) }
     end
 
     def version_params

@@ -3,7 +3,7 @@ module LlmLogs
     BedrockBatch = Struct.new(:role_arn, :s3_bucket, :s3_prefix, :min_records, :model_matcher, :region, keyword_init: true)
 
     attr_accessor :enabled, :auto_instrument, :retention_days, :prompts_source_path, :prompt_subfolders,
-                  :batch_enabled, :batch_provider, :page_size, :bedrock_batch
+                  :batch_enabled, :batch_provider, :page_size, :bedrock_batch, :reasoning_effort_options
 
     def initialize
       @enabled             = true
@@ -15,6 +15,10 @@ module LlmLogs
       @batch_provider      = :openai_responses
       @page_size           = 50
       @bedrock_batch       = nil
+      # Effort tiers offered in the prompt form. Union of what current providers
+      # accept -- OpenAI takes all six, Anthropic has no "none". Narrow this in an
+      # initializer if your app targets one provider.
+      @reasoning_effort_options = %w[none low medium high xhigh max]
     end
   end
 

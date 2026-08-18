@@ -105,6 +105,31 @@ params = prompt.build(
 # => { model: "claude-sonnet-4", messages: [...], temperature: 0.3, max_tokens: 2048 }
 ```
 
+### Reasoning Effort
+
+Reasoning models take an effort tier rather than a temperature. Set it like any
+other model param, from the admin form or a prompt `.md`:
+
+```yaml
+model: gpt-5.6-terra
+model_params:
+  reasoning_effort: low
+```
+
+Values are validated against `LlmLogs.reasoning_effort_options`, which defaults to
+`%w[none low medium high xhigh max]` — the union of what current providers accept.
+Narrow it if your app targets a single provider (Anthropic has no `none` tier):
+
+```ruby
+LlmLogs.setup do |config|
+  config.reasoning_effort_options = %w[low medium high]
+end
+```
+
+Leaving the field blank stores nothing, so the model's own default applies.
+Applying the value to a request is the caller's job — the gem stores and validates
+it, it does not build your chat object.
+
 ### Versioning
 
 Every save creates a new version. Previous versions are never modified.

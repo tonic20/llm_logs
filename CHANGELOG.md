@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-08-18
+
+### Added
+- First-class `reasoning_effort` support for prompts. The admin prompt form now offers an
+  effort select alongside temperature and max_tokens, so it can be set without editing a
+  prompt `.md` and re-syncing. Values are validated on `PromptVersion` against the new
+  `LlmLogs.reasoning_effort_options` setting (default `%w[none low medium high xhigh max]`),
+  which also guards the `PromptSyncer` and console paths. Blank stores nothing so the
+  model default applies.
+
+### Changed
+- `PromptsController#create` / `#update` now wrap the prompt and its version in a
+  transaction, so a version that fails validation can no longer leave an orphan prompt
+  behind. Version-level errors render on the form instead of raising.
+
 ## [0.3.1] - 2026-07-15
 
 ### Fixed
