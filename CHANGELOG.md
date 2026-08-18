@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
   model default applies.
 
 ### Changed
+- Prompt detail page: "Model Parameters" moves from the bottom of the main column into
+  the sidebar, directly under "Version History", keeping the main column to prompt content.
 - `PromptsController#create` / `#update` now wrap the prompt and its version in a
   transaction, so a version that fails validation can no longer leave an orphan prompt
   behind. Version-level errors render on the form instead of raising.

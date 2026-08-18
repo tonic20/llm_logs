@@ -150,6 +150,30 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response.body).to include("Hello {{name}}")
     end
 
+    it "renders model parameters in the sidebar, after version history" do
+      prompt = LlmLogs::Prompt.create!(slug: "sidebar", name: "Sidebar")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "Hi" }],
+        model: "gpt-5.6-terra",
+        model_params: { "reasoning_effort" => "low" }
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      expect(response.body).to include("Model Parameters")
+      expect(response.body).to include("reasoning_effort")
+      expect(response.body.index("Model Parameters")).to be > response.body.index("Version History")
+    end
+
+    it "renders a prompt that has no versions yet" do
+      prompt = LlmLogs::Prompt.create!(slug: "empty", name: "Empty")
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Model Parameters")
+    end
+
     it "renders prompt messages as sanitized markdown" do
       prompt = LlmLogs::Prompt.create!(slug: "markdown", name: "Markdown")
       prompt.update_content!(
