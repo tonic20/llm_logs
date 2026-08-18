@@ -11,7 +11,6 @@ All notable changes to this project will be documented in this file.
   `LlmLogs.reasoning_effort_options` setting (default `%w[none low medium high xhigh max]`),
   which also guards the `PromptSyncer` and console paths. Blank stores nothing so the
   model default applies.
-
 - `Batch.enqueue` accepts `reasoning_effort:`, carried in the request payload and emitted by
   both adapters: `reasoning: {effort:}` for the OpenAI Responses API (the Chat Completions
   spelling `reasoning_effort` is ignored there), and Anthropic adaptive thinking
