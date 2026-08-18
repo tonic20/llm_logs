@@ -20,6 +20,24 @@ RSpec.describe "LlmLogs::Batch.enqueue" do
     expect(request.custom_id).to start_with("req_")
   end
 
+  it "carries reasoning_effort into the payload when given" do
+    request = LlmLogs::Batch.enqueue(
+      purpose: "chat_summary", model: "gpt-5.6-luna", input: "USER: hi",
+      instructions: "Summarize.", schema: nil, routing: {}, reasoning_effort: "low"
+    )
+
+    expect(request.payload["reasoning_effort"]).to eq("low")
+  end
+
+  it "omits reasoning_effort from the payload when not given" do
+    request = LlmLogs::Batch.enqueue(
+      purpose: "chat_summary", model: "gpt-5.6-luna", input: "USER: hi",
+      instructions: "Summarize.", schema: nil, routing: {}
+    )
+
+    expect(request.payload).not_to have_key("reasoning_effort")
+  end
+
   it "batchable? is false when batching disabled" do
     LlmLogs.configuration.batch_enabled = false
     expect(LlmLogs::Batch.batchable?("gpt-5.4-mini")).to be(false)

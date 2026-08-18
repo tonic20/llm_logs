@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-08-18
+
+### Added
+- First-class `reasoning_effort` support for prompts. The admin prompt form now offers an
+  effort select alongside temperature and max_tokens, so it can be set without editing a
+  prompt `.md` and re-syncing. Values are validated on `PromptVersion` against the new
+  `LlmLogs.reasoning_effort_options` setting (default `%w[none low medium high xhigh max]`),
+  which also guards the `PromptSyncer` and console paths. Blank stores nothing so the
+  model default applies.
+- `Batch.enqueue` accepts `reasoning_effort:`, carried in the request payload and emitted by
+  both adapters: `reasoning: {effort:}` for the OpenAI Responses API (the Chat Completions
+  spelling `reasoning_effort` is ignored there), and Anthropic adaptive thinking
+  (`thinking: {type: "adaptive"}` + `output_config.effort`) for Bedrock. Without this a
+  reasoning effort set on a prompt was silently dropped for anything that batches.
+
+### Fixed
+- Bedrock batch adapter now carries `temperature` into the manifest. `Batch.enqueue` has
+  accepted it since 0.3.0 and the OpenAI adapter emitted it, but the Bedrock adapter built
+  its body without it, so the value was silently dropped.
+
+### Changed
+- Prompt detail page: "Model Parameters" moves from the bottom of the main column into
+  the sidebar, directly under "Version History", keeping the main column to prompt content.
+- `PromptsController#create` / `#update` now wrap the prompt and its version in a
+  transaction, so a version that fails validation can no longer leave an orphan prompt
+  behind. Version-level errors render on the form instead of raising.
+
 ## [0.3.1] - 2026-07-15
 
 ### Fixed

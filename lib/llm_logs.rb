@@ -46,6 +46,10 @@ module LlmLogs
     configuration.page_size = page_size
   end
 
+  def self.reasoning_effort_options
+    configuration.reasoning_effort_options
+  end
+
   def self.batch_enabled?
     configuration.batch_enabled
   end

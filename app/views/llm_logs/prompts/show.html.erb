@@ -44,22 +44,6 @@
         </div>
       </div>
 
-      <% if @current_version.model_params.present? && @current_version.model_params.any? %>
-        <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
-          <div class="px-4 py-3 border-b border-gray-200">
-            <h2 class="text-sm font-medium text-gray-900">Model Parameters</h2>
-          </div>
-          <div class="p-4">
-            <dl class="grid grid-cols-2 gap-2 text-sm">
-              <% @current_version.model_params.each do |key, value| %>
-                <dt class="text-gray-500"><%= key %></dt>
-                <dd class="text-gray-900 font-mono"><%= value %></dd>
-              <% end %>
-            </dl>
-          </div>
-        </div>
-      <% end %>
-
       <% if @current_version.default_variables.present? && @current_version.default_variables.any? %>
         <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
           <div class="px-4 py-3 border-b border-gray-200">
@@ -100,6 +84,22 @@
         <% end %>
       </div>
     </div>
+
+    <% if @current_version&.model_params.present? %>
+      <div class="mt-4 bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
+        <div class="px-4 py-3 border-b border-gray-200">
+          <h2 class="text-sm font-medium text-gray-900">Model Parameters</h2>
+        </div>
+        <div class="p-4">
+          <dl class="grid grid-cols-2 gap-2 text-sm">
+            <% @current_version.model_params.each do |key, value| %>
+              <dt class="text-gray-500"><%= key %></dt>
+              <dd class="text-gray-900 font-mono text-right"><%= value %></dd>
+            <% end %>
+          </dl>
+        </div>
+      </div>
+    <% end %>
 
     <details class="mt-4 bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5">
       <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-gray-900">SDK Usage</summary>

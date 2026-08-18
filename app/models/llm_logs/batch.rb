@@ -18,7 +18,7 @@ module LlmLogs
     scope :recent, -> { order(created_at: :desc) }
     scope :unreconciled, -> { where.not(status: %i[reconciled failed expired]) }
 
-    def self.enqueue(purpose:, model:, input:, instructions:, schema:, routing:, temperature: nil)
+    def self.enqueue(purpose:, model:, input:, instructions:, schema:, routing:, temperature: nil, reasoning_effort: nil)
       BatchRequest.create!(
         purpose: purpose,
         model: model,
@@ -29,7 +29,8 @@ module LlmLogs
           "input" => input,
           "instructions" => instructions,
           "schema" => schema,
-          "temperature" => temperature
+          "temperature" => temperature,
+          "reasoning_effort" => reasoning_effort
         }.compact
       )
     end

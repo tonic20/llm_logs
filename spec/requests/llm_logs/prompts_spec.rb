@@ -18,6 +18,17 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
     end
   end
 
+  describe "reasoning effort on the form" do
+    it "offers every configured effort option" do
+      get "/llm_logs/prompts/new"
+
+      expect(response.body).to include("reasoning_effort")
+      LlmLogs.configuration.reasoning_effort_options.each do |option|
+        expect(response.body).to include(option)
+      end
+    end
+  end
+
   describe "POST /llm_logs/prompts" do
     it "creates a prompt with a version" do
       expect {
@@ -38,6 +49,51 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       prompt = LlmLogs::Prompt.last
       expect(response).to redirect_to("/llm_logs/prompts/#{prompt.id}")
       expect(prompt.current_version.messages.size).to eq(2)
+    end
+
+    it "stores reasoning_effort as a string rather than coercing it" do
+      post "/llm_logs/prompts", params: {
+        prompt: {
+          slug: "effort-test",
+          name: "Effort Test",
+          model: "gpt-5.6-terra",
+          model_params: { reasoning_effort: "low" },
+          messages: { "0" => { role: "user", content: "Hello" } }
+        }
+      }
+
+      version = LlmLogs::Prompt.last.current_version
+      expect(version.model_params["reasoning_effort"]).to eq("low")
+    end
+
+    it "omits reasoning_effort when left blank so the model default applies" do
+      post "/llm_logs/prompts", params: {
+        prompt: {
+          slug: "effort-blank",
+          name: "Effort Blank",
+          model: "gpt-5.6-terra",
+          model_params: { reasoning_effort: "" },
+          messages: { "0" => { role: "user", content: "Hello" } }
+        }
+      }
+
+      version = LlmLogs::Prompt.last.current_version
+      expect(version.model_params).not_to have_key("reasoning_effort")
+    end
+
+    it "rejects a reasoning_effort outside the configured options" do
+      post "/llm_logs/prompts", params: {
+        prompt: {
+          slug: "effort-bad",
+          name: "Effort Bad",
+          model: "gpt-5.6-terra",
+          model_params: { reasoning_effort: "turbo" },
+          messages: { "0" => { role: "user", content: "Hello" } }
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include("turbo")
     end
 
     it "coerces model_params from form strings to numeric types" do
@@ -92,6 +148,30 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response.body).to include("← Prompts")
       expect(response.body).to include("Greeting")
       expect(response.body).to include("Hello {{name}}")
+    end
+
+    it "renders model parameters in the sidebar, after version history" do
+      prompt = LlmLogs::Prompt.create!(slug: "sidebar", name: "Sidebar")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "Hi" }],
+        model: "gpt-5.6-terra",
+        model_params: { "reasoning_effort" => "low" }
+      )
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      expect(response.body).to include("Model Parameters")
+      expect(response.body).to include("reasoning_effort")
+      expect(response.body.index("Model Parameters")).to be > response.body.index("Version History")
+    end
+
+    it "renders a prompt that has no versions yet" do
+      prompt = LlmLogs::Prompt.create!(slug: "empty", name: "Empty")
+
+      get "/llm_logs/prompts/#{prompt.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Model Parameters")
     end
 
     it "renders prompt messages as sanitized markdown" do
