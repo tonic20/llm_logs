@@ -12,6 +12,17 @@ All notable changes to this project will be documented in this file.
   which also guards the `PromptSyncer` and console paths. Blank stores nothing so the
   model default applies.
 
+- `Batch.enqueue` accepts `reasoning_effort:`, carried in the request payload and emitted by
+  both adapters: `reasoning: {effort:}` for the OpenAI Responses API (the Chat Completions
+  spelling `reasoning_effort` is ignored there), and Anthropic adaptive thinking
+  (`thinking: {type: "adaptive"}` + `output_config.effort`) for Bedrock. Without this a
+  reasoning effort set on a prompt was silently dropped for anything that batches.
+
+### Fixed
+- Bedrock batch adapter now carries `temperature` into the manifest. `Batch.enqueue` has
+  accepted it since 0.3.0 and the OpenAI adapter emitted it, but the Bedrock adapter built
+  its body without it, so the value was silently dropped.
+
 ### Changed
 - Prompt detail page: "Model Parameters" moves from the bottom of the main column into
   the sidebar, directly under "Version History", keeping the main column to prompt content.

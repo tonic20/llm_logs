@@ -45,6 +45,33 @@ RSpec.describe LlmLogs::Batch::Adapters::Bedrock do
     expect(job_name).to include("eval-judge")
   end
 
+  it "encodes reasoning effort as Anthropic adaptive thinking in the manifest" do
+    put_calls = []
+    s3.stub_responses(:put_object, ->(ctx) { put_calls << ctx.params; {} })
+    bedrock.stub_responses(:create_model_invocation_job, {job_arn: "arn:aws:bedrock:us-east-1:1:model-invocation-job/xyz"})
+    batch.requests.create!(custom_id: "req_effort", purpose: "eval_judge", model: "anthropic.claude-sonnet", status: "submitted",
+                           payload: {"input" => "Rate this.", "reasoning_effort" => "low"})
+
+    adapter.submit(batch, batch.requests.to_a)
+
+    line = JSON.parse(put_calls.first[:body].lines.first)
+    expect(line.dig("modelInput", "thinking")).to eq("type" => "adaptive")
+    expect(line.dig("modelInput", "output_config", "effort")).to eq("low")
+  end
+
+  it "carries temperature into the manifest instead of dropping it" do
+    put_calls = []
+    s3.stub_responses(:put_object, ->(ctx) { put_calls << ctx.params; {} })
+    bedrock.stub_responses(:create_model_invocation_job, {job_arn: "arn:aws:bedrock:us-east-1:1:model-invocation-job/xyz"})
+    batch.requests.create!(custom_id: "req_temp", purpose: "eval_judge", model: "anthropic.claude-sonnet", status: "submitted",
+                           payload: {"input" => "Rate this.", "temperature" => 0.3})
+
+    adapter.submit(batch, batch.requests.to_a)
+
+    line = JSON.parse(put_calls.first[:body].lines.first)
+    expect(line.dig("modelInput", "temperature")).to eq(0.3)
+  end
+
   it "maps job status to a terminal status" do
     batch.update!(provider_batch_id: "arn:job")
     # aws-sdk-bedrock's response-shape validator (client-side stub checking, not our code)

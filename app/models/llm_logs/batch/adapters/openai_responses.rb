@@ -15,6 +15,7 @@ module LlmLogs
               id: request.custom_id,
               instructions: payload["instructions"],
               temperature: payload["temperature"],
+              **reasoning_extra(payload["reasoning_effort"]),
               **schema_extra(payload["schema"])
             )
           end
@@ -35,6 +36,14 @@ module LlmLogs
         end
 
         private
+
+        # The Responses API nests effort under `reasoning:`; `reasoning_effort` is the
+        # Chat Completions spelling and is silently ignored here.
+        def reasoning_extra(effort)
+          return {} if effort.blank?
+
+          {reasoning: {effort: effort}}
+        end
 
         # No memoization: LlmLogs.batch_adapters holds one shared instance of this adapter
         # for the life of the process, so caching the resumed handle here would go stale

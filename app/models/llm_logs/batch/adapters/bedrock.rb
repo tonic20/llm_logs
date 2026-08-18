@@ -96,8 +96,15 @@ module LlmLogs
             "messages" => [{"role" => "user", "content" => payload["input"]}]
           }
           body["system"] = payload["instructions"] if payload["instructions"]
+          body["temperature"] = payload["temperature"] if payload["temperature"]
+          body.merge!(adaptive_thinking(payload["reasoning_effort"])) if payload["reasoning_effort"].present?
           body.merge!(structured_output(payload["schema"])) if payload["schema"]
           body
+        end
+
+        # Anthropic takes an effort tier as adaptive thinking rather than a bare param.
+        def adaptive_thinking(effort)
+          {"thinking" => {"type" => "adaptive"}, "output_config" => {"effort" => effort}}
         end
 
         # Anthropic structured output via a single forced tool (verify encoding against QA).

@@ -21,6 +21,19 @@ RSpec.describe LlmLogs::Batch::Adapters::OpenaiResponses do
     expect(result).to eq(provider_batch_id: "batch_abc", openai_batch_id: "batch_abc", provider_metadata: {})
   end
 
+  it "sends reasoning effort in the Responses API shape when the payload carries one" do
+    allow(RubyLLM).to receive(:batch).with(model: "gpt-5.6-luna", provider: :openai_responses).and_return(rubyllm_batch)
+    reasoning_batch = LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.6-luna", status: "pending", provider: "openai_responses")
+    reasoning_batch.requests.create!(custom_id: "req_2", purpose: "chat_summary", model: "gpt-5.6-luna", status: "submitted",
+                                     payload: {"input" => "USER: hi", "reasoning_effort" => "low"})
+
+    adapter.submit(reasoning_batch, reasoning_batch.requests.to_a)
+
+    expect(rubyllm_batch).to have_received(:add).with(
+      "USER: hi", id: "req_2", instructions: nil, temperature: nil, reasoning: {effort: "low"}
+    )
+  end
+
   it "reads status, results, and error ids by provider_batch_id" do
     batch.update!(provider_batch_id: "batch_abc")
     resumed = instance_double(RubyLLM::Providers::OpenAIResponses::Batch,
