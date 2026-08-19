@@ -8,6 +8,54 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Greeting")
     end
+
+    it "lists the model of each prompt's current version" do
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "Hi" }],
+        model: "gpt-5.6-terra"
+      )
+
+      get "/llm_logs/prompts"
+
+      expect(response.body).to include("Model")
+      expect(response.body).to include("gpt-5.6-terra")
+    end
+
+    it "lists the newest version's model rather than an earlier one" do
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      prompt.update_content!(messages: [{ "role" => "user", "content" => "Hi" }], model: "gpt-5.4")
+      prompt.update_content!(messages: [{ "role" => "user", "content" => "Hi" }], model: "gpt-5.6-terra")
+
+      get "/llm_logs/prompts"
+
+      expect(response.body).to include("gpt-5.6-terra")
+      expect(response.body).not_to include("gpt-5.4")
+    end
+
+    it "lists the reasoning effort alongside the model" do
+      prompt = LlmLogs::Prompt.create!(slug: "greeting", name: "Greeting")
+      prompt.update_content!(
+        messages: [{ "role" => "user", "content" => "Hi" }],
+        model: "gpt-5.6-terra",
+        model_params: { "reasoning_effort" => "low" }
+      )
+
+      get "/llm_logs/prompts"
+
+      # ">low<" rather than "low": the markup already carries "overflow-hidden".
+      expect(response.body).to include("gpt-5.6-terra")
+      expect(response.body).to include(">low<")
+    end
+
+    it "renders a prompt that has no versions yet" do
+      LlmLogs::Prompt.create!(slug: "empty", name: "Empty")
+
+      get "/llm_logs/prompts"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Empty")
+    end
   end
 
   describe "GET /llm_logs/prompts/new" do

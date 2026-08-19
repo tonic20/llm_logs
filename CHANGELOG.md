@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-08-19
+
+### Added
+- The prompts index lists each prompt's current model, with its `reasoning_effort` as a
+  badge beside it, so the models in use across every prompt can be read from one page
+  instead of opening each prompt in turn.
+
+### Fixed
+- The prompts index no longer issues a `MAX(version_number)` query per row. It resolves the
+  current version from the already eager-loaded `versions` association, which drops the
+  index from 2N+ queries to a constant 3.
+
 ## [0.4.0] - 2026-08-18
 
 ### Added
