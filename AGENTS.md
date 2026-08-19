@@ -26,6 +26,9 @@ Rules for AI agents working on the `llm_logs` Ruby gem (a mountable Rails engine
   - Patch (`0.1.3 → 0.1.4`): bugfixes, internal refactors, doc-only changes with no user-visible behavior shift.
   - Minor (`0.1.3 → 0.2.0`): new features, new configuration options, new public APIs (pre-1.0 may also include breaking changes here, but call them out loudly).
   - Major (`0.1.3 → 1.0.0`+): breaking changes in stable releases.
+- A version bump must also carry the refreshed `Gemfile.lock` in the same commit — run `bundle install`
+  after editing `lib/llm_logs/version.rb`. CI bundles in frozen mode and fails with "The gemspecs for path
+  gems changed, but the lockfile can't be updated" when the lock still names the old version.
 - Every version bump must have a corresponding `## [x.y.z] - YYYY-MM-DD` section in `CHANGELOG.md` with Added / Changed / Fixed / Removed subsections as needed.
 - After a release commit lands on `main`, tag it `vX.Y.Z` (matches the pattern set by `v0.1.1`, `v0.1.2`, `v0.1.3`, ...) and push the tag: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
 - Do **not** run `gem push` yourself — that requires the maintainer's RubyGems MFA. Build the gem (`gem build llm_logs.gemspec`) and hand it off.
