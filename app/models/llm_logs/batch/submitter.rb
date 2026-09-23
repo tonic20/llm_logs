@@ -15,6 +15,7 @@ module LlmLogs
       end
 
       def call
+        LlmLogs::Batch.require_supported_adapter!
         batch = claim_batch
         return nil if batch.nil?
 

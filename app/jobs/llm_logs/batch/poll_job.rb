@@ -9,6 +9,7 @@ module LlmLogs
       STALE_CLAIM_AFTER = 15.minutes
 
       def perform
+        LlmLogs::Batch.require_supported_adapter!
         recover_stale_claims
         LlmLogs::Batch.unreconciled.where.not(provider_batch_id: nil).find_each do |batch|
           batch.reconcile!

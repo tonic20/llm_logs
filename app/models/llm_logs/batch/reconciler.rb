@@ -9,6 +9,7 @@ module LlmLogs
       end
 
       def call
+        LlmLogs::Batch.require_supported_adapter!
         adapter = LlmLogs::Batch.adapter_for(@batch.provider)
         status = adapter.terminal_status(@batch)
         case status

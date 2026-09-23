@@ -1,6 +1,6 @@
 require "spec_helper"
 
-RSpec.describe LlmLogs::Batch::Submitter do
+RSpec.describe LlmLogs::Batch::Submitter, :postgresql do
   let(:fake_batch) do
     instance_double(
       RubyLLM::Providers::OpenAIResponses::Batch,

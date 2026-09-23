@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    llm_logs (0.4.1)
+    llm_logs (0.5.0)
       diffy (~> 3.4)
       kaminari (~> 1.2)
       kramdown (~> 2.5)
@@ -313,6 +313,14 @@ GEM
       ruby_llm (>= 1.13)
     ruby_llm-schema (0.4.0)
     securerandom (0.4.1)
+    sqlite3 (2.9.6-aarch64-linux-gnu)
+    sqlite3 (2.9.6-aarch64-linux-musl)
+    sqlite3 (2.9.6-arm-linux-gnu)
+    sqlite3 (2.9.6-arm-linux-musl)
+    sqlite3 (2.9.6-arm64-darwin)
+    sqlite3 (2.9.6-x86_64-darwin)
+    sqlite3 (2.9.6-x86_64-linux-gnu)
+    sqlite3 (2.9.6-x86_64-linux-musl)
     stringio (3.2.0)
     thor (1.5.0)
     timeout (0.6.0)
@@ -354,6 +362,7 @@ DEPENDENCIES
   rspec-rails (~> 7.0)
   ruby_llm (~> 1.16)
   ruby_llm-responses_api (~> 0.6)
+  sqlite3 (>= 2.1)
   webmock (~> 3.0)
 
 BUNDLED WITH

@@ -1,5 +1,15 @@
 module LlmLogs
   class Batch < ApplicationRecord
+    class UnsupportedAdapter < StandardError; end
+
+    def self.supported_adapter?
+      connection.adapter_name == "PostgreSQL"
+    end
+
+    def self.require_supported_adapter!
+      raise UnsupportedAdapter, "Provider batch execution requires PostgreSQL" unless supported_adapter?
+    end
+
     self.table_name = "llm_logs_batches"
 
     has_many :requests, class_name: "LlmLogs::BatchRequest", dependent: :destroy
@@ -19,6 +29,7 @@ module LlmLogs
     scope :unreconciled, -> { where.not(status: %i[reconciled failed expired]) }
 
     def self.enqueue(purpose:, model:, input:, instructions:, schema:, routing:, temperature: nil, reasoning_effort: nil)
+      require_supported_adapter!
       BatchRequest.create!(
         purpose: purpose,
         model: model,
@@ -50,7 +61,7 @@ module LlmLogs
     end
 
     def self.batchable?(model)
-      return false unless LlmLogs.batch_enabled?
+      return false unless supported_adapter? && LlmLogs.batch_enabled?
 
       !batch_provider_for(model).nil?
     end

@@ -1,6 +1,6 @@
 require "spec_helper"
 
-RSpec.describe "LlmLogs::Batch.enqueue" do
+RSpec.describe "LlmLogs::Batch.enqueue", :postgresql do
   it "creates a pending request carrying payload and routing" do
     request = LlmLogs::Batch.enqueue(
       purpose: "chat_summary",

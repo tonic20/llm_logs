@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-09-23
+
+### Added
+- SQLite support for prompt/version management, exact tag filtering, tracing, and the engine UI. Install migrations select adapter-compatible JSON types and indexes; PostgreSQL keeps JSONB and array tags.
+- Ruby 4 and SQLite CI coverage, migration round-trip verification, and independent-connection prompt/trace write tests.
+
+### Changed
+- Provider batch execution explicitly requires PostgreSQL. SQLite reports batching unavailable and rejects enqueue, submission, reconciliation, and worker entry points before side effects.
+
 ## [0.4.1] - 2026-08-19
 
 ### Added

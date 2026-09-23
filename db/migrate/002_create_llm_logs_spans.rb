@@ -7,8 +7,8 @@ class CreateLlmLogsSpans < ActiveRecord::Migration[8.0]
       t.string :span_type, null: false
       t.string :model
       t.string :provider
-      t.jsonb :input
-      t.jsonb :output
+      t.column :input, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json)
+      t.column :output, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json)
       t.integer :input_tokens
       t.integer :output_tokens
       t.integer :cached_tokens
@@ -16,7 +16,7 @@ class CreateLlmLogsSpans < ActiveRecord::Migration[8.0]
       t.float :duration_ms
       t.string :status, null: false, default: "ok"
       t.text :error_message
-      t.jsonb :metadata, default: {}
+      t.column :metadata, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), default: {}
       t.datetime :started_at, null: false
       t.datetime :completed_at
 

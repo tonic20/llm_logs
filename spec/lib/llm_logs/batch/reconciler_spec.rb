@@ -1,6 +1,6 @@
 require "spec_helper"
 
-RSpec.describe LlmLogs::Batch::Reconciler do
+RSpec.describe LlmLogs::Batch::Reconciler, :postgresql do
   let(:handler) { double("handler") }
   let(:message) { instance_double(RubyLLM::Message, content: "summary", input_tokens: 10, output_tokens: 5, model_id: "gpt-5.4-mini") }
 

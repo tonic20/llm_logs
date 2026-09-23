@@ -1,4 +1,10 @@
 test:
+<% if ENV["LLM_LOGS_DATABASE"] == "sqlite" %>
+  adapter: sqlite3
+  database: <%= File.expand_path("../../tmp/sqlite-test.sqlite3", __dir__) %>
+  timeout: 5000
+<% else %>
   adapter: postgresql
   database: llm_logs_test
   host: localhost
+<% end %>

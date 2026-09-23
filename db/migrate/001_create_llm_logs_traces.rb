@@ -3,7 +3,7 @@ class CreateLlmLogsTraces < ActiveRecord::Migration[8.0]
     create_table :llm_logs_traces do |t|
       t.string :name, null: false
       t.string :status, null: false, default: "running"
-      t.jsonb :metadata, default: {}
+      t.column :metadata, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), default: {}
       t.integer :total_input_tokens, default: 0
       t.integer :total_output_tokens, default: 0
       t.integer :total_cached_tokens, default: 0, null: false
