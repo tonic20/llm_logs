@@ -3,6 +3,7 @@ source "https://rubygems.org"
 gemspec
 
 gem "pg", "~> 1.5"
+gem "sqlite3", ">= 2.1"
 gem "puma"
 
 group :development, :test do

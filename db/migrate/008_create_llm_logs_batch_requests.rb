@@ -6,8 +6,8 @@ class CreateLlmLogsBatchRequests < ActiveRecord::Migration[8.0]
       t.string :purpose, null: false
       t.string :status, null: false, default: "pending"
       t.string :model, null: false
-      t.jsonb :payload, null: false, default: {}
-      t.jsonb :routing, null: false, default: {}
+      t.column :payload, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), null: false, default: {}
+      t.column :routing, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), null: false, default: {}
       t.text :result_content
       t.integer :input_tokens
       t.integer :output_tokens

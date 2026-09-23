@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    strategy:
+      matrix:
+        ruby: ["3.3", "4.0"]
+        database: [postgresql, sqlite]
+
     services:
       postgres:
         image: postgres:16
@@ -28,6 +33,7 @@ jobs:
 
     env:
       RAILS_ENV: test
+      LLM_LOGS_DATABASE: ${{ matrix.database }}
       PGHOST: 127.0.0.1
       PGUSER: postgres
       PGPASSWORD: postgres
@@ -39,20 +45,20 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
 
       - name: Create database
+        if: matrix.database == 'postgresql'
         run: >-
           DATABASE_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/llm_logs_test
           bundle exec rake db:create
 
       - name: Run migrations
+        if: matrix.database == 'postgresql'
         run: >-
           DATABASE_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/llm_logs_test
           bundle exec rake db:migrate
 
       - name: Run test suite
-        run: >-
-          DATABASE_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/llm_logs_test
-          bundle exec rspec
+        run: bundle exec rspec

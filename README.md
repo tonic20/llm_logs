@@ -349,3 +349,9 @@ end
 ## License
 
 MIT
+
+## Database support
+
+Prompts, prompt versions, tag filters, traces, spans, and their UI support PostgreSQL and SQLite. PostgreSQL retains JSONB and array tags; SQLite uses JSON columns and `json_each` for exact tag matching. Provider batch execution requires PostgreSQL; direct calls and jobs raise `LlmLogs::Batch::UnsupportedAdapter` on SQLite. `LlmLogs::Batch.supported_adapter?` reports the capability.
+
+Run the shared SQLite tests with `LLM_LOGS_DATABASE=sqlite bundle exec rspec`; PostgreSQL remains the default. SQLite migrations run from the gem's install chain before tests. `script/verify_migrations.rb` verifies install, rollback, and schema reload **only on a disposable database** with `LLM_LOGS_DISPOSABLE_DATABASE=1` and an explicit `DATABASE_URL`.

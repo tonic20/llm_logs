@@ -5,8 +5,17 @@ module LlmLogs
     validates :slug, presence: true, uniqueness: true
     validates :name, presence: true
 
-    scope :with_tag,      ->(tag)  { where("? = ANY(tags)", tag) }
-    scope :with_any_tag,  ->(tags) { where("tags && ARRAY[?]::varchar[]", Array(tags)) }
+    scope :with_tag, ->(tag) { with_any_tag([tag]) }
+    scope :with_any_tag, ->(tags) {
+      values = Array(tags)
+      if values.empty?
+        none
+      elsif connection.adapter_name == "PostgreSQL"
+        where("tags && ARRAY[?]::varchar[]", values)
+      else
+        where("EXISTS (SELECT 1 FROM json_each(llm_logs_prompts.tags) AS tag WHERE tag.value COLLATE BINARY IN (?))", values)
+      end
+    }
 
     def tags_string
       Array(tags).join(", ")

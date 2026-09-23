@@ -1,7 +1,7 @@
 class AddProviderColumnsToLlmLogsBatches < ActiveRecord::Migration[8.0]
   def change
     add_column :llm_logs_batches, :provider_batch_id, :string
-    add_column :llm_logs_batches, :provider_metadata, :jsonb, null: false, default: {}
+    add_column :llm_logs_batches, :provider_metadata, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), null: false, default: {}
     add_index  :llm_logs_batches, :provider_batch_id
 
     # Backfill existing OpenAI rows so the reconciler/poll job can key off the

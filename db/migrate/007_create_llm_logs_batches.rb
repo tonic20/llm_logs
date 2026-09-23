@@ -9,7 +9,7 @@ class CreateLlmLogsBatches < ActiveRecord::Migration[8.0]
       t.string :openai_error_file_id
       t.string :status, null: false, default: "pending"
       t.integer :request_count, null: false, default: 0
-      t.jsonb :metadata, null: false, default: {}
+      t.column :metadata, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), null: false, default: {}
       t.datetime :submitted_at
       t.datetime :completed_at
       t.datetime :reconciled_at

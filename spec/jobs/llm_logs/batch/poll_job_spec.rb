@@ -1,6 +1,6 @@
 require "spec_helper"
 
-RSpec.describe LlmLogs::Batch::PollJob do
+RSpec.describe LlmLogs::Batch::PollJob, :postgresql do
   it "reconciles every unreconciled batch that has an openai_batch_id" do
     b1 = LlmLogs::Batch.create!(purpose: "chat_summary", model: "m", status: "submitted", openai_batch_id: "b1", provider_batch_id: "b1")
     LlmLogs::Batch.create!(purpose: "chat_summary", model: "m", status: "reconciled", openai_batch_id: "b2", provider_batch_id: "b2")

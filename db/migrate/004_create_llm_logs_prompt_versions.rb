@@ -3,10 +3,10 @@ class CreateLlmLogsPromptVersions < ActiveRecord::Migration[8.0]
     create_table :llm_logs_prompt_versions do |t|
       t.references :prompt, null: false, foreign_key: { to_table: :llm_logs_prompts }
       t.integer :version_number, null: false
-      t.jsonb :messages, null: false, default: []
+      t.column :messages, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), null: false, default: []
       t.string :model
-      t.jsonb :model_params, default: {}
-      t.jsonb :default_variables, default: {}
+      t.column :model_params, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), default: {}
+      t.column :default_variables, (connection.adapter_name == "PostgreSQL" ? :jsonb : :json), default: {}
       t.text :changelog
 
       t.timestamps
