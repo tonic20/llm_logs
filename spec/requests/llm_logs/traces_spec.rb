@@ -130,4 +130,15 @@ RSpec.describe "LlmLogs::Traces", type: :request do
     end
   end
 
+  it "labels missing subscription usage and cost without displaying invented zero measurements" do
+    trace.update!(metadata: {"billing_mode" => "subscription", "usage_missing" => true}, total_input_tokens: 0, total_output_tokens: 0, total_cost: 0)
+    get "/llm_logs/traces/#{trace.id}"
+    expect(response.body).to include("Usage unavailable", "Subscription · cost unavailable")
+    get "/llm_logs/traces"
+    expect(response.body).to include("Usage unavailable", "Subscription · cost unavailable")
+    span.update!(input_tokens: nil, output_tokens: nil, cached_tokens: nil)
+    get "/llm_logs/traces/#{trace.id}/spans/#{span.id}"
+    expect(response.body).to include("Unavailable")
+  end
+
 end

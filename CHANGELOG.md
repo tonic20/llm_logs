@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-09-23
+
+### Fixed
+- Preserve unavailable token measurements in span views and traces marked with `usage_missing` metadata; label subscription cost as unavailable rather than a measured zero.
+
 ## [0.5.0] - 2026-09-23
 
 ### Added

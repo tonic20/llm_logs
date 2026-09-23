@@ -24,15 +24,15 @@
   </div>
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Input Tokens</dt>
-    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@span.input_tokens || 0) %></dd>
+    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= @span.input_tokens.nil? ? "Unavailable" : number_with_delimiter(@span.input_tokens) %></dd>
   </div>
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Output Tokens</dt>
-    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= number_with_delimiter(@span.output_tokens || 0) %></dd>
+    <dd class="text-lg font-semibold text-gray-900 mt-1"><%= @span.output_tokens.nil? ? "Unavailable" : number_with_delimiter(@span.output_tokens) %></dd>
   </div>
   <div class="bg-white rounded-lg p-4 shadow-sm ring-1 ring-gray-900/5">
     <dt class="text-xs font-medium text-gray-500 uppercase">Cached Tokens</dt>
-    <dd class="text-lg font-semibold text-green-600 mt-1"><%= number_with_delimiter(@span.cached_tokens || 0) %></dd>
+    <dd class="text-lg font-semibold text-green-600 mt-1"><%= @span.cached_tokens.nil? ? "Unavailable" : number_with_delimiter(@span.cached_tokens) %></dd>
     <% if (@span.input_tokens || 0) > 0 && (@span.cached_tokens || 0) > 0 %>
       <dd class="text-xs text-green-600 mt-0.5"><%= (@span.cached_tokens.to_f / @span.input_tokens * 100).round %>% of input</dd>
     <% end %>
