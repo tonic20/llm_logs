@@ -176,6 +176,67 @@ RSpec.describe LlmLogs::RubyLLMPatches do
     end
   end
 
+  describe "ConverseForeignReasoning: Bedrock reasoning is replayed only to Anthropic models" do
+    # History of a chat whose earlier turns Claude answered on Bedrock: one assistant message
+    # with thinking text + signature, one signature-only (thinking_text "" after a data
+    # migration) and one carrying the raw Converse reasoning blocks.
+    def claude_history(chat)
+      chat.add_message(role: :user, content: "Q1")
+      chat.add_message(role: :assistant, content: "A1",
+        thinking: RubyLLM::Thinking.build(text: "thought one", signature: "sig-1"))
+      chat.add_message(role: :user, content: "Q2")
+      chat.add_message(role: :assistant, content: "A2", thinking: RubyLLM::Thinking.build(text: "", signature: "sig-2"))
+      chat.add_message(role: :user, content: "Q3")
+      chat.add_message(role: :assistant, content: "A3",
+        raw_reasoning: {"converse" => [{"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}}]})
+      chat
+    end
+
+    # Sends the history plus a new question to +model+ and returns the assistant content blocks sent.
+    def assistant_content_sent(model)
+      bodies = []
+      # any model path: ruby_llm may resolve the id to its catalog's regional profile
+      stub_request(:post, %r{\A#{runtime}/model/[^/]+/converse\z})
+        .to_return { |req| bodies << JSON.parse(req.body) && converse_ok }
+
+      claude_history(RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true)).ask("Q4")
+
+      expect(bodies.size).to eq(1)
+      bodies.first["messages"].select { |m| m["role"] == "assistant" }.map { |m| m["content"] }
+    end
+
+    it "sends no reasoningContent to an OpenAI GPT model" do
+      content = assistant_content_sent("us.openai.gpt-6-sol")
+
+      expect(content).to eq([[{"text" => "A1"}], [{"text" => "A2"}], [{"text" => "A3"}]])
+    end
+
+    it "keeps replaying reasoning to Claude models (upstream behaviour)" do
+      content = assistant_content_sent("us.anthropic.claude-sonnet-4-6")
+
+      expect(content).to eq([
+        [{"reasoningContent" => {"reasoningText" => {"text" => "thought one", "signature" => "sig-1"}}}, {"text" => "A1"}],
+        [{"reasoningContent" => {"reasoningText" => {"text" => "", "signature" => "sig-2"}}}, {"text" => "A2"}],
+        [{"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}}, {"text" => "A3"}]
+      ])
+    end
+
+    it "drops reasoning for other non-Anthropic Converse models too" do
+      expect(assistant_content_sent("us.amazon.nova-2-lite-v1:0").flatten).to all(satisfy { |b| !b.key?("reasoningContent") })
+    end
+
+    it "keeps replaying to Claude under any region prefix" do
+      [claude, "global.anthropic.claude-sonnet-4-6", "eu.anthropic.claude-sonnet-4-6"].each do |model|
+        expect(assistant_content_sent(model).map(&:first)).to all(have_key("reasoningContent"))
+      end
+    end
+
+    it "keeps upstream behaviour for an application inference profile, whose id names no model" do
+      arn = "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/abc123"
+      expect(assistant_content_sent(arn).map(&:first)).to all(have_key("reasoningContent"))
+    end
+  end
+
   describe "RetrySSLError: TLS handshake failures are retried" do
     it "retries a Faraday::SSLError and succeeds" do
       stub_request(:post, "#{runtime}/model/#{claude}/converse")

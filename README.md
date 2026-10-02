@@ -337,10 +337,11 @@ With `auto_instrument` on, LlmLogs subscribes to ruby_llm's `chat.ruby_llm` and 
 
 ### Patches for ruby_llm 2.0.x
 
-The engine prepends three fixes (`LlmLogs::RubyLLMPatches`) that ruby_llm 2.0.0 lacks. They install only on ruby_llm >= 2.0.0, and log a warning on 2.1 or later so you re-check them. Drop each once upstream ships the fix:
+The engine prepends four fixes (`LlmLogs::RubyLLMPatches`) that ruby_llm 2.0.0 lacks. They install only on ruby_llm >= 2.0.0, and log a warning on 2.1 or later so you re-check them. Drop each once upstream ships the fix:
 
 - **BedrockSigV4** re-signs every Bedrock attempt at send time. Upstream signs once before the retry middleware, so a retry after a long timeout replays an expired signature (403 "Signature expired"). Drop when upstream signs per attempt.
 - **ConverseOpenAIReasoning** sends reasoning effort to OpenAI GPT models on Bedrock Converse as `additionalModelRequestFields: {reasoning: {effort: ...}}` (including `none`). Upstream sends `reasoning_effort`, which Bedrock rejects. Claude, Nova, and gpt-oss are unchanged. Drop when upstream sends the GPT shape.
+- **ConverseForeignReasoning** replays earlier assistant reasoning (`reasoningContent`) on Bedrock Converse only when the target is an Anthropic model. Upstream replays it to every model, so a chat Claude answered and an OpenAI GPT model continues fails with "This model doesn't support the reasoningContent.reasoningText.text field". Other models whose id names a vendor (`openai.`, `amazon.`, ...) get no reasoning blocks. Claude targets, Mantle, and application-inference-profile ARNs are unchanged. Drop when upstream replays Converse reasoning only to models that accept it.
 - **RetrySSLError** adds `Faraday::SSLError` (for example "SSL_connect ... unexpected eof") to the retried exceptions. This is the same trade-off ruby_llm already accepts for read timeouts: a request that reached the server may be sent twice. ruby_llm's `retry_if` still refuses to retry requests marked non-idempotent and streams that already delivered content. Drop when upstream retries `Faraday::SSLError`.
 
 ## Requirements
