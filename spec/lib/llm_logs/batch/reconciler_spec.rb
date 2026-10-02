@@ -2,29 +2,30 @@ require "spec_helper"
 
 RSpec.describe LlmLogs::Batch::Reconciler, :postgresql do
   let(:handler) { double("handler") }
-  let(:message) { instance_double(RubyLLM::Message, content: "summary", input_tokens: 10, output_tokens: 5, model_id: "gpt-5.4-mini") }
+  let(:model) { "us.anthropic.claude-haiku-4-5-20251001-v1:0" }
+  let(:message) do
+    LlmLogs::Batch::Adapters::Bedrock::Result.new(content: "summary", input_tokens: 1000, output_tokens: 500, model_id: model)
+  end
+  let(:adapter) { double("bedrock_adapter", terminal_status: "completed", results: {"req_1" => message}, error_ids: []) }
 
   let!(:batch) do
-    LlmLogs::Batch.create!(purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted",
-                           openai_batch_id: "batch_abc", provider_batch_id: "batch_abc", request_count: 1)
+    LlmLogs::Batch.create!(purpose: "chat_summary", model: model, provider: "bedrock", status: "submitted",
+                           provider_batch_id: "arn:job", request_count: 1)
   end
   let!(:request) do
-    batch.requests.create!(custom_id: "req_1", purpose: "chat_summary", model: "gpt-5.4-mini", status: "submitted",
+    batch.requests.create!(custom_id: "req_1", purpose: "chat_summary", model: model, status: "submitted",
                            payload: { "input" => "USER: hi" }, routing: { "chat_id" => 7 })
   end
 
-  let(:rubyllm_batch) { instance_double(RubyLLM::Providers::OpenAIResponses::Batch) }
-
   before do
     LlmLogs.register_batch_handler("chat_summary", handler)
-    allow(RubyLLM).to receive(:batch).with(id: "batch_abc", provider: :openai_responses).and_return(rubyllm_batch)
-    allow(rubyllm_batch).to receive(:status).and_return("completed")
-    allow(rubyllm_batch).to receive(:completed?).and_return(true)
-    allow(rubyllm_batch).to receive(:results).and_return({ "req_1" => message })
-    allow(rubyllm_batch).to receive(:errors).and_return([])
+    LlmLogs.register_batch_adapter(:bedrock, adapter)
   end
 
-  after { LlmLogs::Batch::HandlerRegistry.clear! }
+  after do
+    LlmLogs::Batch::HandlerRegistry.clear!
+    LlmLogs.batch_adapters.delete(:bedrock)
+  end
 
   it "records the trace, marks the request succeeded, and invokes the handler" do
     expect(handler).to receive(:call).with(request, message)
@@ -34,14 +35,14 @@ RSpec.describe LlmLogs::Batch::Reconciler, :postgresql do
 
     request.reload
     expect(request.status).to eq("succeeded")
-    expect(request.input_tokens).to eq(10)
+    expect(request.input_tokens).to eq(1000)
     expect(request.trace_id).to be_present
+    expect(request.cost.to_f).to be_within(1e-9).of((1000 * 1.1 + 500 * 5.5) / 1e6 * 0.5)
     expect(batch.reload.status).to eq("reconciled")
   end
 
   it "does nothing while the batch is still in progress" do
-    allow(rubyllm_batch).to receive(:status).and_return("in_progress")
-    allow(rubyllm_batch).to receive(:completed?).and_return(false)
+    allow(adapter).to receive(:terminal_status).and_return("in_progress")
 
     described_class.new(batch).call
     expect(batch.reload.status).to eq("submitted")
@@ -61,7 +62,7 @@ RSpec.describe LlmLogs::Batch::Reconciler, :postgresql do
   end
 
   it "fails all open requests and invokes on_failure when the batch failed" do
-    expect(rubyllm_batch).to receive(:status).once.and_return("failed")
+    expect(adapter).to receive(:terminal_status).once.and_return("failed")
     allow(handler).to receive(:on_failure)
 
     described_class.new(batch).call
@@ -73,7 +74,7 @@ RSpec.describe LlmLogs::Batch::Reconciler, :postgresql do
   end
 
   it "fails a request with no result for its custom_id and invokes on_failure" do
-    allow(rubyllm_batch).to receive(:results).and_return({})
+    allow(adapter).to receive(:results).and_return({})
     allow(handler).to receive(:on_failure)
 
     described_class.new(batch).call

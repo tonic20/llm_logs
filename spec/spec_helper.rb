@@ -4,7 +4,6 @@ require_relative "dummy/config/environment"
 
 require "rspec/rails"
 require "ruby_llm"
-require "ruby_llm-responses_api"
 require "webmock/rspec"
 
 RubyLLM.configure { |c| c.openai_api_key = "test-key" }
