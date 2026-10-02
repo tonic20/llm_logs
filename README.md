@@ -209,16 +209,7 @@ Running the task creates missing prompts, updates metadata, and creates a new pr
 
 Send latency-insensitive requests through a provider's Batch API for roughly half the cost. LlmLogs persists each request, groups pending requests into a provider batch, reconciles results, and records a trace per request — so batched work shows up in the dashboard alongside synchronous calls.
 
-Two batch backends are supported, selected **per model**:
-
-- **[OpenAI Responses Batch API](https://platform.openai.com/docs/guides/batch)** via [`ruby_llm-responses_api`](https://rubygems.org/gems/ruby_llm-responses_api) — the default for OpenAI models.
-- **[AWS Bedrock Batch API](#aws-bedrock-batches)** (`CreateModelInvocationJob`) for Anthropic Claude models.
-
-Add the OpenAI provider to your app's Gemfile:
-
-```ruby
-gem "ruby_llm-responses_api"
-```
+Batching runs on the **[AWS Bedrock Batch API](#aws-bedrock-batches)** (`CreateModelInvocationJob`) for Anthropic Claude models. Models Bedrock does not serve are not batchable; run them synchronously.
 
 ### Enqueue a Request
 
@@ -227,10 +218,10 @@ Requests are persisted immediately and grouped by `purpose` + `model` when submi
 ```ruby
 LlmLogs::Batch.enqueue(
   purpose: "chat_summary",
-  model: "gpt-4.1-mini",
+  model: "anthropic.claude-haiku-4-5-20251001-v1:0",
   instructions: "Summarize the conversation in two sentences.",
   input: conversation_text,
-  schema: SummarySchema,          # optional RubyLLM::Schema for structured output
+  schema: SUMMARY_SCHEMA,          # optional JSON schema Hash for structured output
   routing: { conversation_id: 42 }, # your keys, echoed into the trace metadata
   temperature: 0.2                  # optional
 )
@@ -247,7 +238,8 @@ Register one handler per `purpose`. The gem owns the batch lifecycle; your app o
 LlmLogs.register_batch_handler("chat_summary", ChatSummaryHandler.new)
 
 class ChatSummaryHandler
-  # Called once a request succeeds. `message` is the RubyLLM::Message.
+  # Called once a request succeeds. `message` is a `LlmLogs::Batch::Adapters::Bedrock::Result`
+  # (content, input_tokens, output_tokens, model_id).
   def call(request, message)
     Conversation.find(request.routing["conversation_id"])
       .update!(summary: message.content)
@@ -302,7 +294,7 @@ LlmLogs.configuration.bedrock_batch = LlmLogs::Configuration::BedrockBatch.new(
 LlmLogs.register_batch_adapter(:bedrock, LlmLogs::Batch::Adapters::Bedrock.new)
 ```
 
-Provider selection is per model: `LlmLogs::Batch.batch_provider_for(model)` returns `:bedrock` when the adapter is registered and `model_matcher` matches, otherwise the OpenAI backend when the model resolves there, otherwise `nil` (not batchable — run it synchronously). Bedrock enforces a **minimum records per job**, so check `LlmLogs::Batch.min_records_for(model)` and fall back to a synchronous call when a batch would be under the floor.
+Provider selection is per model: `LlmLogs::Batch.batch_provider_for(model)` returns `:bedrock` when the adapter is registered and `model_matcher` matches, otherwise `nil` (not batchable — run it synchronously). Bedrock enforces a **minimum records per job**, so check `LlmLogs::Batch.min_records_for(model)` and fall back to a synchronous call when a batch would be under the floor.
 
 The adapter builds its AWS clients from the ambient credential chain by default; inject your own to authenticate explicitly:
 
@@ -330,15 +322,26 @@ Browse traces and manage prompts at `/llm_logs`.
 ```ruby
 LlmLogs.setup do |config|
   config.enabled = true                                      # master switch for logging
-  config.auto_instrument = true                              # auto-prepend on RubyLLM::Chat
+  config.auto_instrument = true                              # subscribe to ruby_llm notifications (needs RubyLLM.config.instrumenter = ActiveSupport::Notifications)
   config.retention_days = 30                                 # for future cleanup job
   config.prompts_source_path = Rails.root.join("db/data/prompts")
   config.prompt_subfolders = %w[skills fragments templates]
   config.batch_enabled = true                                # enable the batch API integration
-  config.batch_provider = :openai_responses                  # default (OpenAI) backend; Bedrock is registered separately (see Batches)
   config.page_size = 50                                      # rows per page on all index pages
 end
 ```
+
+## ruby_llm 2.0 integration
+
+With `auto_instrument` on, LlmLogs subscribes to ruby_llm's `chat.ruby_llm` and `tool_call.ruby_llm` notifications: one `llm` span per provider round and one tool span per tool call, all siblings under the trace. Tokens and cost come from each round's usage entries. This requires `RubyLLM.config.instrumenter` to be `ActiveSupport::Notifications`; the Railtie sets that default, and `LlmLogs::Instrumentation::RubyLlmChat.install!` sets it when unset.
+
+### Patches for ruby_llm 2.0.x
+
+The engine prepends three fixes (`LlmLogs::RubyLLMPatches`) that ruby_llm 2.0.0 lacks. They install only on ruby_llm >= 2.0.0, and log a warning on 2.1 or later so you re-check them. Drop each once upstream ships the fix:
+
+- **BedrockSigV4** re-signs every Bedrock attempt at send time. Upstream signs once before the retry middleware, so a retry after a long timeout replays an expired signature (403 "Signature expired"). Drop when upstream signs per attempt.
+- **ConverseOpenAIReasoning** sends reasoning effort to OpenAI GPT models on Bedrock Converse as `additionalModelRequestFields: {reasoning: {effort: ...}}` (including `none`). Upstream sends `reasoning_effort`, which Bedrock rejects. Claude, Nova, and gpt-oss are unchanged. Drop when upstream sends the GPT shape.
+- **RetrySSLError** adds `Faraday::SSLError` (for example "SSL_connect ... unexpected eof") to the retried exceptions. This is the same trade-off ruby_llm already accepts for read timeouts: a request that reached the server may be sent twice. ruby_llm's `retry_if` still refuses to retry requests marked non-idempotent and streams that already delivered content. Drop when upstream retries `Faraday::SSLError`.
 
 ## Requirements
 

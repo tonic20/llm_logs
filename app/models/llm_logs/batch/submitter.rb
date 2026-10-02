@@ -1,8 +1,7 @@
 module LlmLogs
   class Batch
-    # Groups pending BatchRequests of one purpose+model into a single OpenAI batch via
-    # ruby_llm-responses_api. To prevent two concurrent FlushJobs from double-submitting
-    # the same requests, it first CLAIMS the pending rows in a `FOR UPDATE SKIP LOCKED`
+    # Groups pending BatchRequests of one purpose+model into a single provider batch. To prevent two
+    # concurrent FlushJobs from double-submitting the same requests, it first CLAIMS the pending rows in a `FOR UPDATE SKIP LOCKED`
     # transaction (assigning them to a placeholder Batch with no openai_batch_id, which
     # flips them out of the `pending` scope and which PollJob ignores). It then submits to
     # OpenAI and records the batch id. If submission fails, the claim is released (requests

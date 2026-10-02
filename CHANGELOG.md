@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-10-02
+
+### Changed
+- Runs on ruby_llm 2.0 (`~> 2.0` development dependency). Structured-output schemas are plain schema Hashes (Schematist replaced `RubyLLM::Schema`), and batch handlers receive a `LlmLogs::Batch::Adapters::Bedrock::Result`.
+- `auto_instrument` now subscribes to ruby_llm's `chat.ruby_llm` and `tool_call.ruby_llm` notifications and records one `llm` span per provider round and one tool span per call, as siblings. This fixes the previous nested spans that lost the first round's tokens and double-counted the last round. Cache-write and thinking tokens go in span metadata. `TraceRecorder.compute_cost` prices through the ruby_llm 2.0 registry.
+- Requires `RubyLLM.config.instrumenter` to be `ActiveSupport::Notifications`. The Railtie default sets it, and `LlmLogs::Instrumentation::RubyLlmChat.install!` sets it when unset.
+- `batch_adapters` defaults to `{}`.
+
+### Added
+- `LlmLogs::RubyLLMPatches`, installed for ruby_llm >= 2.0.0 (with a warning from 2.1 on): `BedrockSigV4` re-signs every Bedrock attempt, `ConverseOpenAIReasoning` sends GPT reasoning effort as `reasoning.effort` on Converse, and `RetrySSLError` retries `Faraday::SSLError` (the same trade-off ruby_llm accepts for read timeouts; non-idempotent requests and streams that already delivered content are still not retried). See the README for when to drop each.
+
+### Removed
+- The OpenAI Responses batch adapter, `LlmLogs.batch_provider`, and `config.batch_provider`. Batching runs on Bedrock only; `Batch.batch_provider_for` returns `:bedrock` or `nil`.
+
 ## [0.5.1] - 2026-09-23
 
 ### Fixed

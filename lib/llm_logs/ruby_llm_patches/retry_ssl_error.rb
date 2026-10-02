@@ -3,9 +3,11 @@ require "faraday"
 module LlmLogs
   module RubyLLMPatches
     # Retries TLS handshake failures (Faraday::SSLError, e.g. "SSL_connect ... unexpected
-    # eof"). They happen before the request body is sent, so a retry cannot double-submit;
-    # ruby_llm's usage ledger already books them as never sent. Faraday::SSLError is not a
-    # Faraday::ConnectionFailed, so 2.0.0's retry list misses it.
+    # eof"). faraday-net_http wraps every OpenSSL::SSL::SSLError as Faraday::SSLError, including
+    # read errors after the request was written, so this is the same trade-off ruby_llm
+    # already accepts for read timeouts. ruby_llm's retry_if (transport/connection.rb) still
+    # refuses non-idempotent requests and streams that already delivered content.
+    # Faraday::SSLError is not a Faraday::ConnectionFailed, so 2.0.0's retry list misses it.
     module RetrySSLError
       private
 
