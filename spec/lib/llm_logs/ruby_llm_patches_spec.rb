@@ -25,6 +25,14 @@ RSpec.describe LlmLogs::RubyLLMPatches do
     saved.each { |k, v| config.public_send(:"#{k}=", v) }
   end
 
+  # ruby_llm sends an unregistered, unsuffixed id with a region prefix it does not know
+  # ("in.") to bedrock-mantle; an app that registers it without a mantle endpoint (as a
+  # Bedrock catalog does) gets Converse. Stands in for that registration.
+  def route_in_prefix_to_converse
+    allow(RubyLLM::Providers::Bedrock::Models).to receive(:mantle_model?)
+      .and_wrap_original { |original, id, models| !id.start_with?("in.") && original.call(id, models) }
+  end
+
   let(:converse_ok) do
     {status: 200, headers: {"Content-Type" => "application/json"},
      body: {output: {message: {role: "assistant", content: [{text: "OK"}]}}, stopReason: "end_turn",
@@ -148,6 +156,13 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       expect(reasoning_fields("global.openai.gpt-6-astra", effort: :xhigh)).to eq(reasoning: {effort: "xhigh"})
     end
 
+    it "recognises GPT under a region prefix ruby_llm does not strip" do
+      # Converse::REGION_PREFIXES has no "in", so foundation_model_id leaves "in.openai...." whole.
+      route_in_prefix_to_converse
+      expect(reasoning_fields("in.openai.gpt-6-sol", effort: :low)).to eq(reasoning: {effort: "low"})
+      expect(reasoning_fields("in.openai.gpt-oss-120b-1:0", effort: :low)).to eq(reasoning_effort: "low")
+    end
+
     it "passes the none tier through for GPT" do
       expect(reasoning_fields("us.openai.gpt-6-sol", effort: :none)).to eq(reasoning: {effort: "none"})
     end
@@ -176,7 +191,7 @@ RSpec.describe LlmLogs::RubyLLMPatches do
     end
   end
 
-  describe "ConverseForeignReasoning: reasoningText is replayed only to Anthropic models" do
+  describe "ConverseForeignReasoning: reasoning is replayed only to a model of the same family" do
     let(:redacted) { {"reasoningContent" => {"redactedContent" => "gpt-encrypted"}} }
     let(:raw_text) { {"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}} }
 
@@ -242,9 +257,87 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       end
     end
 
+    it "treats a model under a region prefix ruby_llm does not strip as Anthropic" do
+      route_in_prefix_to_converse
+      expect(assistant_content_sent("in.anthropic.claude-sonnet-4-6").first(3).map(&:first))
+        .to all(have_key("reasoningContent"))
+    end
+
     it "keeps upstream behaviour for an application inference profile, whose id names no model" do
       arn = "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/abc123"
       expect(assistant_content_sent(arn).first(3).map(&:first)).to all(have_key("reasoningContent"))
+    end
+
+    context "when the message names the model that produced it" do
+      # Each assistant message carries the model that produced it, as RubyLLM::Message#model
+      # does for replies and for rows restored from ruby_llm_usages.
+      def produced_history(chat, producer)
+        chat.add_message(role: :user, content: "Q1")
+        chat.add_message(role: :assistant, content: "A1", model: producer,
+          thinking: RubyLLM::Thinking.build(text: "thought one", signature: "sig-1"))
+        chat.add_message(role: :user, content: "Q2")
+        # a legacy row: signature only, thinking_text "" after the data migration
+        chat.add_message(role: :assistant, content: "A2", model: producer,
+          thinking: RubyLLM::Thinking.build(text: "", signature: "sig-2"))
+        chat.add_message(role: :user, content: "Q3")
+        chat.add_message(role: :assistant, content: "A3", model: producer,
+          raw_reasoning: {"converse" => [raw_text, redacted]})
+        chat
+      end
+
+      def produced_content_sent(producer:, target:)
+        bodies = []
+        stub_request(:post, %r{\A#{runtime}/model/[^/]+/converse\z})
+          .to_return { |req| bodies << JSON.parse(req.body) && converse_ok }
+
+        produced_history(RubyLLM.chat(model: target, provider: :bedrock, assume_model_exists: true), producer)
+          .ask("Q4")
+
+        expect(bodies.size).to eq(1)
+        bodies.first["messages"].select { |m| m["role"] == "assistant" }.map { |m| m["content"] }
+      end
+
+      let(:no_reasoning) { [[{"text" => "A1"}], [{"text" => "A2"}], [{"text" => "A3"}]] }
+
+      it "drops GPT-produced reasoning when Claude continues the chat" do
+        expect(produced_content_sent(producer: "us.openai.gpt-6-sol", target: "us.anthropic.claude-sonnet-5"))
+          .to eq(no_reasoning)
+      end
+
+      it "drops reasoning GPT produced under an unstripped region prefix" do
+        expect(produced_content_sent(producer: "in.openai.gpt-6-sol", target: "us.anthropic.claude-sonnet-5"))
+          .to eq(no_reasoning)
+      end
+
+      it "replays Claude-produced reasoning to Claude (upstream behaviour)" do
+        expect(produced_content_sent(producer: "us.anthropic.claude-sonnet-5", target: "global.anthropic.claude-sonnet-5"))
+          .to eq([
+            [{"reasoningContent" => {"reasoningText" => {"text" => "thought one", "signature" => "sig-1"}}}, {"text" => "A1"}],
+            [{"reasoningContent" => {"reasoningText" => {"text" => "", "signature" => "sig-2"}}}, {"text" => "A2"}],
+            [raw_text, redacted, {"text" => "A3"}]
+          ])
+      end
+
+      it "drops Claude-produced reasoning, redactedContent included, when GPT continues the chat" do
+        expect(produced_content_sent(producer: "us.anthropic.claude-sonnet-5", target: "us.openai.gpt-6-sol"))
+          .to eq(no_reasoning)
+      end
+
+      it "keeps GPT's own redactedContent for GPT, without reasoningText or the thinking fallback" do
+        expect(produced_content_sent(producer: "us.openai.gpt-6-sol", target: "us.openai.gpt-6-luna"))
+          .to eq([[{"text" => "A1"}], [{"text" => "A2"}], [redacted, {"text" => "A3"}]])
+      end
+
+      it "drops reasoning another vendor produced" do
+        expect(produced_content_sent(producer: "us.amazon.nova-2-lite-v1:0", target: "us.openai.gpt-6-sol"))
+          .to eq(no_reasoning)
+      end
+
+      it "keeps the producer-unknown rule for an application inference profile producer" do
+        arn = "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/abc123"
+        expect(produced_content_sent(producer: arn, target: "us.anthropic.claude-sonnet-5").map(&:first))
+          .to all(have_key("reasoningContent"))
+      end
     end
   end
 

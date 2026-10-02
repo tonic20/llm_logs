@@ -8,10 +8,12 @@ module LlmLogs
     # `{reasoning: {effort: "low"}}`, including the "none" tier (fork commit 6391332e).
     #
     # Only OpenAI GPT models on Converse change (us./global./eu.openai.gpt-6-sol, gpt-5.6-*,
-    # ...). gpt-oss keeps upstream behaviour (not verified with this shape); Claude (budget
-    # schema -> reasoning_config), Nova (reasoningConfig) and explicit budgets go to super.
+    # ...), under any region prefix: upstream REGION_PREFIXES lacks some (e.g. "in."), so
+    # foundation_model_id can leave one in place. gpt-oss keeps upstream behaviour (not
+    # verified with this shape); Claude (budget schema -> reasoning_config), Nova
+    # (reasoningConfig) and explicit budgets go to super.
     module ConverseOpenAIReasoning
-      OPENAI_GPT = /\Aopenai\.gpt-(?!oss)/
+      OPENAI_GPT = /(?:\A|\.)openai\.gpt-(?!oss)/
 
       private
 

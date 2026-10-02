@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 - `batch_adapters` defaults to `{}`.
 
 ### Added
-- `LlmLogs::RubyLLMPatches`, installed for ruby_llm >= 2.0.0 (with a warning from 2.1 on): `BedrockSigV4` re-signs every Bedrock attempt, `ConverseOpenAIReasoning` sends GPT reasoning effort as `reasoning.effort` on Converse, `ConverseForeignReasoning` replays `reasoningText` on Converse only to Anthropic models (Bedrock rejects it for GPT) while other models keep their own `redactedContent`, and `RetrySSLError` retries `Faraday::SSLError` (the same trade-off ruby_llm accepts for read timeouts; non-idempotent requests and streams that already delivered content are still not retried). See the README for when to drop each.
+- `LlmLogs::RubyLLMPatches`, installed for ruby_llm >= 2.0.0 (with a warning from 2.1 on): `BedrockSigV4` re-signs every Bedrock attempt, `ConverseOpenAIReasoning` sends GPT reasoning effort as `reasoning.effort` on Converse (under any region prefix, including `in.`), `ConverseForeignReasoning` replays a message's reasoning only to a model of the same family (anthropic, openai, or another vendor, judged by the message's producing model; Bedrock rejects Claude's `reasoningText` for GPT, and Claude cannot validate GPT's encrypted reasoning), with GPT keeping only its own `redactedContent`, and `RetrySSLError` retries `Faraday::SSLError` (the same trade-off ruby_llm accepts for read timeouts; non-idempotent requests and streams that already delivered content are still not retried). See the README for when to drop each.
 
 ### Removed
 - The OpenAI Responses batch adapter, `LlmLogs.batch_provider`, and `config.batch_provider`. Batching runs on Bedrock only; `Batch.batch_provider_for` returns `:bedrock` or `nil`.
