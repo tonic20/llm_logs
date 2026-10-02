@@ -13,6 +13,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - `LlmLogs::RubyLLMPatches`, installed for ruby_llm >= 2.0.0 (with a warning from 2.1 on): `BedrockSigV4` re-signs every Bedrock attempt, `ConverseOpenAIReasoning` sends GPT reasoning effort as `reasoning.effort` on Converse (under any region prefix, including `in.`), `ConverseForeignReasoning` replays a message's reasoning only to a model of the same family (anthropic, openai, or another vendor, judged by the message's producing model; Bedrock rejects Claude's `reasoningText` for GPT, and Claude cannot validate GPT's encrypted reasoning), with GPT keeping only its own `redactedContent`, and `RetrySSLError` retries `Faraday::SSLError` (the same trade-off ruby_llm accepts for read timeouts; non-idempotent requests and streams that already delivered content are still not retried). See the README for when to drop each.
 
+### Fixed
+- `LlmLogs::RubyLLMPatches::ConverseClaudeAdaptiveThinking` sends adaptive-only Claude models on Bedrock Converse (Sonnet 5, Opus 4.7/4.8/5, Fable 5) `{thinking: {type: "adaptive"}, output_config: {effort:}}` instead of the fixed `reasoning_config` budget they reject, so every advertised effort (including `xhigh` and `max`) works and `with_thinking(true)` turns thinking on. Budget-style Claude, explicit budgets, and other vendors are unchanged. Drop it when ruby_llm's Converse protocol mirrors its Anthropic protocol's adaptive rule.
+
 ### Removed
 - The OpenAI Responses batch adapter, `LlmLogs.batch_provider`, and `config.batch_provider`. Batching runs on Bedrock only; `Batch.batch_provider_for` returns `:bedrock` or `nil`.
 

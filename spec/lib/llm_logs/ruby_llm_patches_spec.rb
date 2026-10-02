@@ -191,6 +191,73 @@ RSpec.describe LlmLogs::RubyLLMPatches do
     end
   end
 
+  describe "ConverseClaudeAdaptiveThinking: adaptive-only Claude thinks adaptively on Converse" do
+    # Sonnet 5 and Opus 4.8 advertise effort and no budget_tokens; Bedrock rejects
+    # reasoning_config enabled for them ("thinking.type.enabled" is not supported).
+    def reasoning_fields(model, thinking = nil)
+      chat = RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true)
+      chat.with_thinking(thinking) unless thinking.nil?
+      chat.add_message(role: :user, content: "hi")
+      chat.render[:additionalModelRequestFields]
+    end
+
+    it "sends adaptive thinking with the effort as output_config for Sonnet 5" do
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", effort: :low))
+        .to eq(thinking: {type: "adaptive"}, output_config: {effort: "low"})
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", effort: :max))
+        .to eq(thinking: {type: "adaptive"}, output_config: {effort: "max"})
+      expect(reasoning_fields("global.anthropic.claude-opus-4-8", effort: :xhigh))
+        .to eq(thinking: {type: "adaptive"}, output_config: {effort: "xhigh"})
+    end
+
+    it "turns adaptive thinking on without an effort when thinking is enabled alone" do
+      # with_thinking(true) resolves to {enabled: true} for a model with a toggle and no default effort.
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", true)).to eq(thinking: {type: "adaptive"})
+    end
+
+    it "sends nothing for the none tier" do
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", effort: :none)).to be_nil
+    end
+
+    it "recognises adaptive-only Claude under a region prefix ruby_llm does not strip" do
+      # Unregistered: its reasoning options come from another entry for the same foundation model.
+      route_in_prefix_to_converse
+      expect(reasoning_fields("in.anthropic.claude-sonnet-5", effort: :medium))
+        .to eq(thinking: {type: "adaptive"}, output_config: {effort: "medium"})
+    end
+
+    it "keeps upstream behaviour for an explicit budget and for thinking turned off" do
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", budget: 2048))
+        .to eq(reasoning_config: {type: "enabled", budget_tokens: 2048})
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", false)).to eq(reasoning_config: {type: "disabled"})
+    end
+
+    it "keeps upstream budgets for budget-style Claude" do
+      expect(reasoning_fields("us.anthropic.claude-sonnet-4-6", effort: :low))
+        .to eq(reasoning_config: {type: "enabled", budget_tokens: 1024})
+      expect(reasoning_fields(claude, budget: 2048)).to eq(reasoning_config: {type: "enabled", budget_tokens: 2048})
+      expect(reasoning_fields(claude, effort: :low)).to eq(reasoning_config: {type: "enabled", budget_tokens: 1024})
+    end
+
+    it "leaves GPT to ConverseOpenAIReasoning" do
+      expect(reasoning_fields("us.openai.gpt-6-sol", effort: :low)).to eq(reasoning: {effort: "low"})
+    end
+
+    it "puts the adaptive shape on the wire" do
+      stub = stub_request(:post, "#{runtime}/model/us.anthropic.claude-sonnet-5/converse")
+        .with { |req|
+          JSON.parse(req.body)["additionalModelRequestFields"] ==
+            {"thinking" => {"type" => "adaptive"}, "output_config" => {"effort" => "low"}}
+        }
+        .to_return(converse_ok)
+
+      RubyLLM.chat(model: "us.anthropic.claude-sonnet-5", provider: :bedrock, assume_model_exists: true)
+        .with_thinking(effort: :low).ask("hi")
+
+      expect(stub).to have_been_requested
+    end
+  end
+
   describe "ConverseForeignReasoning: reasoning is replayed only to a model of the same family" do
     let(:redacted) { {"reasoningContent" => {"redactedContent" => "gpt-encrypted"}} }
     let(:raw_text) { {"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}} }

@@ -1,6 +1,7 @@
 require "llm_logs/ruby_llm_patches/bedrock_sigv4"
 require "llm_logs/ruby_llm_patches/converse_openai_reasoning"
 require "llm_logs/ruby_llm_patches/converse_foreign_reasoning"
+require "llm_logs/ruby_llm_patches/converse_claude_adaptive_thinking"
 require "llm_logs/ruby_llm_patches/retry_ssl_error"
 
 module LlmLogs
@@ -10,7 +11,9 @@ module LlmLogs
   # upstream fixed the bug (then drop the patch) or moved the method (then the patch
   # skips itself and logs why).
   module RubyLLMPatches
-    PATCHES = [BedrockSigV4, ConverseOpenAIReasoning, ConverseForeignReasoning, RetrySSLError].freeze
+    PATCHES = [
+      BedrockSigV4, ConverseOpenAIReasoning, ConverseForeignReasoning, ConverseClaudeAdaptiveThinking, RetrySSLError
+    ].freeze
     MINIMUM = Gem::Version.new("2.0.0")
     VERIFIED = Gem::Requirement.new(">= 2.0.0", "< 2.1")
 
