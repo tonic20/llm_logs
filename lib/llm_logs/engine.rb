@@ -6,7 +6,7 @@ module LlmLogs
       ActiveSupport.on_load(:active_record) do
         if LlmLogs.auto_instrument && defined?(RubyLLM::Chat)
           require "llm_logs/instrumentation/ruby_llm_chat"
-          RubyLLM::Chat.prepend(LlmLogs::Instrumentation::RubyLlmChat)
+          LlmLogs::Instrumentation::RubyLlmChat.install!
         end
       end
     end
