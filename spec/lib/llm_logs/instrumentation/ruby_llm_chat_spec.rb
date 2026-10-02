@@ -81,22 +81,6 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
      headers: {"Content-Type" => "application/vnd.amazon.eventstream"}}
   end
 
-  def span_rows(trace)
-    trace.spans.order(:id).map do |s|
-      {name: s.name, type: s.span_type, status: s.status, model: s.model, provider: s.provider,
-       in: s.input_tokens, out: s.output_tokens, cached: s.cached_tokens, cost: s.cost&.to_f,
-       meta: s.metadata.except("tools"), output: s.output, error: s.error_message,
-       input_roles: s.span_type == "llm" ? s.input.map { |m| m["role"] } : s.input,
-       parent: s.parent_span_id}
-    end
-  end
-
-  def dump(label, trace)
-    puts "\n== #{label} (trace #{trace.status}, tokens in=#{trace.total_input_tokens} out=#{trace.total_output_tokens} " \
-         "cached=#{trace.total_cached_tokens} cost=#{trace.total_cost.to_f})"
-    span_rows(trace).each { |row| puts "  #{row.inspect}" }
-  end
-
   it "records one llm span per provider round and one tool span per tool call (sync)" do
     stub_converse(json_response(tool_round), json_response(answer_round))
 
@@ -108,7 +92,6 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
       expect(chat.ask("Weather in Berlin?").content).to eq("It is 21C in Berlin.")
     end
     trace.reload
-    dump("sync", trace)
 
     llm1, tool, llm2 = trace.spans.order(:id).to_a
     expect([llm1.name, tool.name, llm2.name]).to eq(%w[chat.complete tool.weather chat.complete])
@@ -160,7 +143,6 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
       chat.ask("Weather in Berlin?") { |chunk| chunks << chunk.content if chunk.content }
     end
     trace.reload
-    dump("streaming", trace)
 
     expect(chunks.join).to eq("It is 21C in Berlin.")
     expect(trace.spans.order(:id).map(&:name)).to eq(%w[chat.complete tool.weather chat.complete])
@@ -183,7 +165,6 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
       end
     end.to raise_error(RubyLLM::ServerError)
     trace.reload
-    dump("failure after retries", trace)
 
     expect(a_request(:post, "#{host}/model/#{model}/converse")).to have_been_made.times(3)
     span = trace.spans.sole
@@ -206,7 +187,6 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
         .ask("hi")
     end
     trace.reload
-    dump("fallback", trace)
 
     primary, fallback = trace.spans.order(:id).to_a
     expect([primary.model, primary.status]).to eq([model, "error"])
@@ -215,15 +195,15 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
   end
 
   it "records tokens but no cost for a model without registry pricing" do
-    stub_converse(json_response(answer_round), model_id: "us.openai.gpt-6-sol")
+    unpriced = "us.example.unpriced-test-model-v1:0" # fictitious, never in any registry
+    stub_converse(json_response(answer_round), model_id: unpriced)
 
     trace = nil
     LlmLogs.trace("unpriced") do |t|
       trace = t
-      RubyLLM.chat(model: "us.openai.gpt-6-sol", provider: :bedrock, assume_model_exists: true).ask("hi")
+      RubyLLM.chat(model: unpriced, provider: :bedrock, assume_model_exists: true).ask("hi")
     end
     trace.reload
-    dump("unpriced model", trace)
 
     span = trace.spans.sole
     expect([span.input_tokens, span.output_tokens, span.cached_tokens]).to eq([180, 12, 1200])
@@ -241,7 +221,6 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
       end
     end.to raise_error(ArgumentError, /no weather for Atlantis/)
     trace.reload
-    dump("tool error", trace)
 
     tool = trace.spans.find_by!(span_type: "tool")
     expect(tool.status).to eq("error")
