@@ -8,6 +8,7 @@ PATH
       kramdown-parser-gfm (~> 1.1)
       mustache (~> 1.1)
       rails (~> 8.0)
+      ruby_llm (>= 2.0, < 3)
 
 GEM
   remote: https://rubygems.org/
@@ -360,7 +361,6 @@ DEPENDENCIES
   pg (~> 1.5)
   puma
   rspec-rails (~> 7.0)
-  ruby_llm (~> 2.0)
   sqlite3 (>= 2.1)
   webmock (~> 3.0)
 
