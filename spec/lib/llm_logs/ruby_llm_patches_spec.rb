@@ -176,19 +176,25 @@ RSpec.describe LlmLogs::RubyLLMPatches do
     end
   end
 
-  describe "ConverseForeignReasoning: Bedrock reasoning is replayed only to Anthropic models" do
-    # History of a chat whose earlier turns Claude answered on Bedrock: one assistant message
-    # with thinking text + signature, one signature-only (thinking_text "" after a data
-    # migration) and one carrying the raw Converse reasoning blocks.
-    def claude_history(chat)
+  describe "ConverseForeignReasoning: reasoningText is replayed only to Anthropic models" do
+    let(:redacted) { {"reasoningContent" => {"redactedContent" => "gpt-encrypted"}} }
+    let(:raw_text) { {"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}} }
+
+    # A chat Claude answered on Bedrock (thinking text + signature, a signature-only row with
+    # thinking_text "" after a data migration, raw reasoningText blocks) and GPT then continued
+    # (raw redactedContent: its own encrypted reasoning; one message mixing both kinds).
+    def mixed_history(chat)
       chat.add_message(role: :user, content: "Q1")
       chat.add_message(role: :assistant, content: "A1",
         thinking: RubyLLM::Thinking.build(text: "thought one", signature: "sig-1"))
       chat.add_message(role: :user, content: "Q2")
       chat.add_message(role: :assistant, content: "A2", thinking: RubyLLM::Thinking.build(text: "", signature: "sig-2"))
       chat.add_message(role: :user, content: "Q3")
-      chat.add_message(role: :assistant, content: "A3",
-        raw_reasoning: {"converse" => [{"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}}]})
+      chat.add_message(role: :assistant, content: "A3", raw_reasoning: {"converse" => [raw_text]})
+      chat.add_message(role: :user, content: "Q4")
+      chat.add_message(role: :assistant, content: "A4", raw_reasoning: {"converse" => [redacted]})
+      chat.add_message(role: :user, content: "Q5")
+      chat.add_message(role: :assistant, content: "A5", raw_reasoning: {"converse" => [raw_text, redacted]})
       chat
     end
 
@@ -199,41 +205,46 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       stub_request(:post, %r{\A#{runtime}/model/[^/]+/converse\z})
         .to_return { |req| bodies << JSON.parse(req.body) && converse_ok }
 
-      claude_history(RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true)).ask("Q4")
+      mixed_history(RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true)).ask("Q6")
 
       expect(bodies.size).to eq(1)
       bodies.first["messages"].select { |m| m["role"] == "assistant" }.map { |m| m["content"] }
     end
 
-    it "sends no reasoningContent to an OpenAI GPT model" do
-      content = assistant_content_sent("us.openai.gpt-6-sol")
-
-      expect(content).to eq([[{"text" => "A1"}], [{"text" => "A2"}], [{"text" => "A3"}]])
+    let(:non_anthropic_content) do
+      [[{"text" => "A1"}], [{"text" => "A2"}], [{"text" => "A3"}],
+       [redacted, {"text" => "A4"}], [redacted, {"text" => "A5"}]]
     end
 
-    it "keeps replaying reasoning to Claude models (upstream behaviour)" do
+    it "sends an OpenAI GPT model its redactedContent but no reasoningText or thinking fallback" do
+      expect(assistant_content_sent("us.openai.gpt-6-sol")).to eq(non_anthropic_content)
+    end
+
+    it "applies the same rule to other non-Anthropic Converse models" do
+      expect(assistant_content_sent("us.amazon.nova-2-lite-v1:0")).to eq(non_anthropic_content)
+    end
+
+    it "keeps replaying all reasoning to Claude models (upstream behaviour)" do
       content = assistant_content_sent("us.anthropic.claude-sonnet-4-6")
 
       expect(content).to eq([
         [{"reasoningContent" => {"reasoningText" => {"text" => "thought one", "signature" => "sig-1"}}}, {"text" => "A1"}],
         [{"reasoningContent" => {"reasoningText" => {"text" => "", "signature" => "sig-2"}}}, {"text" => "A2"}],
-        [{"reasoningContent" => {"reasoningText" => {"text" => "raw", "signature" => "sig-3"}}}, {"text" => "A3"}]
+        [raw_text, {"text" => "A3"}],
+        [redacted, {"text" => "A4"}],
+        [raw_text, redacted, {"text" => "A5"}]
       ])
-    end
-
-    it "drops reasoning for other non-Anthropic Converse models too" do
-      expect(assistant_content_sent("us.amazon.nova-2-lite-v1:0").flatten).to all(satisfy { |b| !b.key?("reasoningContent") })
     end
 
     it "keeps replaying to Claude under any region prefix" do
       [claude, "global.anthropic.claude-sonnet-4-6", "eu.anthropic.claude-sonnet-4-6"].each do |model|
-        expect(assistant_content_sent(model).map(&:first)).to all(have_key("reasoningContent"))
+        expect(assistant_content_sent(model).first(3).map(&:first)).to all(have_key("reasoningContent"))
       end
     end
 
     it "keeps upstream behaviour for an application inference profile, whose id names no model" do
       arn = "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/abc123"
-      expect(assistant_content_sent(arn).map(&:first)).to all(have_key("reasoningContent"))
+      expect(assistant_content_sent(arn).first(3).map(&:first)).to all(have_key("reasoningContent"))
     end
   end
 
