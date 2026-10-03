@@ -141,47 +141,89 @@ RSpec.describe LlmLogs::RubyLLMPatches do
     end
   end
 
-  describe "ConverseOpenAIReasoning: GPT effort is sent as reasoning.effort" do
-    def reasoning_fields(model, **thinking)
-      chat = RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true)
-      chat.with_thinking(**thinking) if thinking.any?
+  describe "ConverseReasoningConfig: effort is the reasoning_config value (backport of ruby_llm#1025)" do
+    def reasoning_fields(model, thinking = nil, assume_model_exists: true)
+      chat = RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: assume_model_exists)
+      chat.with_thinking(thinking) unless thinking.nil?
       chat.add_message(role: :user, content: "hi")
       chat.render[:additionalModelRequestFields]
     end
 
-    it "nests effort under reasoning for OpenAI GPT models on Converse" do
-      expect(reasoning_fields("us.openai.gpt-6-sol", effort: :low)).to eq(reasoning: {effort: "low"})
-      expect(reasoning_fields("us.openai.gpt-6-luna", effort: :high)).to eq(reasoning: {effort: "high"})
-      expect(reasoning_fields("us.openai.gpt-5.6-sol", effort: :medium)).to eq(reasoning: {effort: "medium"})
-      expect(reasoning_fields("global.openai.gpt-6-astra", effort: :xhigh)).to eq(reasoning: {effort: "xhigh"})
+    # GPT-6 Sol as an app's Bedrock catalog registers it (spoton-api's bedrock_models.json):
+    # effort values including "none", but no Converse additionalRequestFieldsSchema. ruby_llm
+    # 2.0.0's packaged registry does not list GPT-6 Sol/Luna at all.
+    def register_like_app_catalog(id)
+      allow(RubyLLM::Model).to receive(:default).and_wrap_original do |original, model_id, provider|
+        next original.call(model_id, provider) unless model_id == id
+
+        RubyLLM::Model.new(id: id, name: id, provider: provider, capabilities: %w[reasoning streaming],
+          metadata: {reasoning_options: [{type: "effort", values: %w[none low medium high xhigh max]}]})
+      end
     end
 
-    it "recognises GPT under a region prefix ruby_llm does not strip" do
-      # Converse::REGION_PREFIXES has no "in", so foundation_model_id leaves "in.openai...." whole.
-      route_in_prefix_to_converse
-      expect(reasoning_fields("in.openai.gpt-6-sol", effort: :low)).to eq(reasoning: {effort: "low"})
-      expect(reasoning_fields("in.openai.gpt-oss-120b-1:0", effort: :low)).to eq(reasoning_effort: "low")
+    context "when the model publishes a reasoning_config enum (upstream rule)" do
+      it "sends the effort as the reasoning_config value" do
+        expect(reasoning_fields("us.openai.gpt-5.6-sol", {effort: :low})).to eq(reasoning_config: "low")
+        expect(reasoning_fields("us.openai.gpt-6-astra", {effort: :xhigh})).to eq(reasoning_config: "xhigh")
+      end
+
+      it "applies to any vendor that publishes the enum, not only OpenAI" do
+        expect(reasoning_fields("us.xai.grok-4.6", {effort: :medium})).to eq(reasoning_config: "medium")
+      end
+
+      it "reads the schema from another registry entry for the same foundation model" do
+        # global.openai.gpt-5.6-sol has no Converse metadata; us.openai.gpt-5.6-sol has the schema.
+        expect(reasoning_fields("global.openai.gpt-5.6-sol", {effort: :none})).to eq(reasoning_config: "none")
+      end
+
+      it "turns reasoning off with reasoning_config none for with_thinking(false)" do
+        # The registered entry's effort values include "none", so thinking off resolves to effort none.
+        expect(reasoning_fields("us.openai.gpt-5.6-sol", false, assume_model_exists: false))
+          .to eq(reasoning_config: "none")
+      end
     end
 
-    it "passes the none tier through for GPT" do
-      expect(reasoning_fields("us.openai.gpt-6-sol", effort: :none)).to eq(reasoning: {effort: "none"})
+    context "when an OpenAI GPT id has no published schema (fallback until the registry lists it)" do
+      it "still sends the effort as the reasoning_config value" do
+        expect(reasoning_fields("us.openai.gpt-6-sol", {effort: :low})).to eq(reasoning_config: "low")
+        expect(reasoning_fields("us.openai.gpt-6-luna", {effort: :high})).to eq(reasoning_config: "high")
+      end
+
+      it "passes the none tier through" do
+        expect(reasoning_fields("us.openai.gpt-6-sol", {effort: :none})).to eq(reasoning_config: "none")
+      end
+
+      it "turns reasoning off with reasoning_config none for with_thinking(false) on the real path" do
+        register_like_app_catalog("us.openai.gpt-6-sol")
+        expect(reasoning_fields("us.openai.gpt-6-sol", false)).to eq(reasoning_config: "none")
+      end
+
+      it "recognises GPT under a region prefix ruby_llm does not strip" do
+        # Converse::REGION_PREFIXES has no "in", so foundation_model_id leaves "in.openai...." whole.
+        route_in_prefix_to_converse
+        expect(reasoning_fields("in.openai.gpt-6-sol", {effort: :low})).to eq(reasoning_config: "low")
+        expect(reasoning_fields("in.openai.gpt-oss-120b-1:0", {effort: :low})).to eq(reasoning_effort: "low")
+      end
     end
 
-    it "sends nothing for GPT when thinking is not configured" do
+    it "sends nothing when thinking is not configured" do
       expect(reasoning_fields("us.openai.gpt-6-sol")).to be_nil
+      expect(reasoning_fields("us.openai.gpt-5.6-sol")).to be_nil
     end
 
-    it "keeps upstream behaviour for Claude, Nova and gpt-oss" do
-      expect(reasoning_fields("us.anthropic.claude-sonnet-4-6", effort: :low))
+    it "keeps upstream behaviour for an explicit budget, Claude, Nova and gpt-oss" do
+      expect(reasoning_fields("us.openai.gpt-6-sol", {budget: 2048}))
+        .to eq(reasoning_config: {type: "enabled", budget_tokens: 2048})
+      expect(reasoning_fields("us.anthropic.claude-sonnet-4-6", {effort: :low}))
         .to eq(reasoning_config: {type: "enabled", budget_tokens: 1024})
-      expect(reasoning_fields("us.amazon.nova-2-lite-v1:0", effort: :medium))
+      expect(reasoning_fields("us.amazon.nova-2-lite-v1:0", {effort: :medium}))
         .to eq(reasoningConfig: {type: "enabled", maxReasoningEffort: "medium"})
-      expect(reasoning_fields("us.openai.gpt-oss-120b-1:0", effort: :low)).to eq(reasoning_effort: "low")
+      expect(reasoning_fields("us.openai.gpt-oss-120b-1:0", {effort: :low})).to eq(reasoning_effort: "low")
     end
 
-    it "puts the nested shape on the wire" do
+    it "puts reasoning_config on the wire" do
       stub = stub_request(:post, "#{runtime}/model/us.openai.gpt-6-sol/converse")
-        .with { |req| JSON.parse(req.body)["additionalModelRequestFields"] == {"reasoning" => {"effort" => "low"}} }
+        .with { |req| JSON.parse(req.body)["additionalModelRequestFields"] == {"reasoning_config" => "low"} }
         .to_return(converse_ok)
 
       RubyLLM.chat(model: "us.openai.gpt-6-sol", provider: :bedrock, assume_model_exists: true)
@@ -239,8 +281,8 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       expect(reasoning_fields(claude, effort: :low)).to eq(reasoning_config: {type: "enabled", budget_tokens: 1024})
     end
 
-    it "leaves GPT to ConverseOpenAIReasoning" do
-      expect(reasoning_fields("us.openai.gpt-6-sol", effort: :low)).to eq(reasoning: {effort: "low"})
+    it "leaves GPT to ConverseReasoningConfig" do
+      expect(reasoning_fields("us.openai.gpt-6-sol", effort: :low)).to eq(reasoning_config: "low")
     end
 
     it "puts the adaptive shape on the wire" do
