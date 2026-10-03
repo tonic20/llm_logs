@@ -377,6 +377,12 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       expect(assistant_content_sent(arn).first(3).map(&:first)).to all(have_key("reasoningContent"))
     end
 
+    it "gives an application inference profile with a dot in its id no vendor (ruby_llm#1026)" do
+      # AWS allows dots in the profile id; "team.prod" must not read as vendor "team".
+      arn = "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/team.prod"
+      expect(assistant_content_sent(arn).first(3).map(&:first)).to all(have_key("reasoningContent"))
+    end
+
     context "when the message names the model that produced it" do
       # Each assistant message carries the model that produced it, as RubyLLM::Message#model
       # does for replies and for rows restored from ruby_llm_usages.
@@ -446,6 +452,21 @@ RSpec.describe LlmLogs::RubyLLMPatches do
         arn = "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/abc123"
         expect(produced_content_sent(producer: arn, target: "us.anthropic.claude-sonnet-5").map(&:first))
           .to all(have_key("reasoningContent"))
+      end
+
+      context "when the producer is an application inference profile with a dot in its id (ruby_llm#1026)" do
+        let(:dotted) { "arn:aws:bedrock:us-west-2:123456789012:application-inference-profile/team.prod" }
+
+        it "replays it to Claude as an unknown producer" do
+          expect(produced_content_sent(producer: dotted, target: "us.anthropic.claude-sonnet-5").map(&:first))
+            .to all(have_key("reasoningContent"))
+        end
+
+        # Stricter than upstream #1026 on purpose: a non-Anthropic target keeps only redactedContent.
+        it "keeps only redactedContent for GPT, as for any unknown producer" do
+          expect(produced_content_sent(producer: dotted, target: "us.openai.gpt-6-sol"))
+            .to eq([[{"text" => "A1"}], [{"text" => "A2"}], [redacted, {"text" => "A3"}]])
+        end
       end
     end
   end

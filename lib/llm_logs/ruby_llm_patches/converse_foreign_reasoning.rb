@@ -23,10 +23,18 @@ module LlmLogs
     #   blocks in raw_reasoning["converse"] (how GPT keeps its own encrypted reasoning across
     #   tool-call rounds); reasoningText and the thinking text/signature fallback are dropped.
     # - Target whose id names no model (application-inference-profile ARN): super, unchanged.
+    #
+    # An application inference profile id is opaque, and AWS allows dots in it
+    # (".../application-inference-profile/team.prod"), so it names no family as producer or
+    # target (backport of crmne/ruby_llm#1026, "Give application inference profiles no vendor").
+    # The rest of this module is stricter than #1026 on purpose: for a non-Anthropic target
+    # whose producer is unknown or of the same family, upstream replays all the reasoning, while
+    # this keeps only redactedContent.
     module ConverseForeignReasoning
       ANTHROPIC = /(?:\A|\.)anthropic\./
       OPENAI = /(?:\A|\.)openai\./
       VENDOR = /\A[a-z0-9-]+(?=\.)/
+      APPLICATION_INFERENCE_PROFILE = ":application-inference-profile/"
 
       private
 
@@ -45,6 +53,8 @@ module LlmLogs
 
       # "anthropic", "openai", another vendor segment, or nil when the id names no model.
       def llm_logs_model_family(model_id)
+        return if model_id.to_s.include?(APPLICATION_INFERENCE_PROFILE)
+
         id = foundation_model_id(model_id)
         return "anthropic" if ANTHROPIC.match?(id)
         return "openai" if OPENAI.match?(id)
