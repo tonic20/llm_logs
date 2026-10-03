@@ -209,16 +209,7 @@ Running the task creates missing prompts, updates metadata, and creates a new pr
 
 Send latency-insensitive requests through a provider's Batch API for roughly half the cost. LlmLogs persists each request, groups pending requests into a provider batch, reconciles results, and records a trace per request — so batched work shows up in the dashboard alongside synchronous calls.
 
-Two batch backends are supported, selected **per model**:
-
-- **[OpenAI Responses Batch API](https://platform.openai.com/docs/guides/batch)** via [`ruby_llm-responses_api`](https://rubygems.org/gems/ruby_llm-responses_api) — the default for OpenAI models.
-- **[AWS Bedrock Batch API](#aws-bedrock-batches)** (`CreateModelInvocationJob`) for Anthropic Claude models.
-
-Add the OpenAI provider to your app's Gemfile:
-
-```ruby
-gem "ruby_llm-responses_api"
-```
+Batching runs on the **[AWS Bedrock Batch API](#aws-bedrock-batches)** (`CreateModelInvocationJob`) for Anthropic Claude models. Models Bedrock does not serve are not batchable; run them synchronously.
 
 ### Enqueue a Request
 
@@ -227,10 +218,10 @@ Requests are persisted immediately and grouped by `purpose` + `model` when submi
 ```ruby
 LlmLogs::Batch.enqueue(
   purpose: "chat_summary",
-  model: "gpt-4.1-mini",
+  model: "anthropic.claude-haiku-4-5-20251001-v1:0",
   instructions: "Summarize the conversation in two sentences.",
   input: conversation_text,
-  schema: SummarySchema,          # optional RubyLLM::Schema for structured output
+  schema: SUMMARY_SCHEMA,          # optional JSON schema Hash for structured output
   routing: { conversation_id: 42 }, # your keys, echoed into the trace metadata
   temperature: 0.2                  # optional
 )
@@ -247,7 +238,8 @@ Register one handler per `purpose`. The gem owns the batch lifecycle; your app o
 LlmLogs.register_batch_handler("chat_summary", ChatSummaryHandler.new)
 
 class ChatSummaryHandler
-  # Called once a request succeeds. `message` is the RubyLLM::Message.
+  # Called once a request succeeds. `message` is a `LlmLogs::Batch::Adapters::Bedrock::Result`
+  # (content, input_tokens, output_tokens, model_id).
   def call(request, message)
     Conversation.find(request.routing["conversation_id"])
       .update!(summary: message.content)
@@ -302,7 +294,7 @@ LlmLogs.configuration.bedrock_batch = LlmLogs::Configuration::BedrockBatch.new(
 LlmLogs.register_batch_adapter(:bedrock, LlmLogs::Batch::Adapters::Bedrock.new)
 ```
 
-Provider selection is per model: `LlmLogs::Batch.batch_provider_for(model)` returns `:bedrock` when the adapter is registered and `model_matcher` matches, otherwise the OpenAI backend when the model resolves there, otherwise `nil` (not batchable — run it synchronously). Bedrock enforces a **minimum records per job**, so check `LlmLogs::Batch.min_records_for(model)` and fall back to a synchronous call when a batch would be under the floor.
+Provider selection is per model: `LlmLogs::Batch.batch_provider_for(model)` returns `:bedrock` when the adapter is registered and `model_matcher` matches, otherwise `nil` (not batchable — run it synchronously). Bedrock enforces a **minimum records per job**, so check `LlmLogs::Batch.min_records_for(model)` and fall back to a synchronous call when a batch would be under the floor.
 
 The adapter builds its AWS clients from the ambient credential chain by default; inject your own to authenticate explicitly:
 
@@ -330,15 +322,36 @@ Browse traces and manage prompts at `/llm_logs`.
 ```ruby
 LlmLogs.setup do |config|
   config.enabled = true                                      # master switch for logging
-  config.auto_instrument = true                              # auto-prepend on RubyLLM::Chat
+  config.auto_instrument = true                              # subscribe to ruby_llm notifications (needs RubyLLM.config.instrumenter = ActiveSupport::Notifications)
   config.retention_days = 30                                 # for future cleanup job
   config.prompts_source_path = Rails.root.join("db/data/prompts")
   config.prompt_subfolders = %w[skills fragments templates]
   config.batch_enabled = true                                # enable the batch API integration
-  config.batch_provider = :openai_responses                  # default (OpenAI) backend; Bedrock is registered separately (see Batches)
   config.page_size = 50                                      # rows per page on all index pages
 end
 ```
+
+## ruby_llm 2.0 integration
+
+With `auto_instrument` on, LlmLogs subscribes to ruby_llm's `chat.ruby_llm` and `tool_call.ruby_llm` notifications: one `llm` span per provider round and one tool span per tool call, all siblings under the trace. Tokens and cost come from each round's usage entries. This requires `RubyLLM.config.instrumenter` to be `ActiveSupport::Notifications`; the Railtie sets that default, and `LlmLogs::Instrumentation::RubyLlmChat.install!` sets it when unset.
+
+### Patches for ruby_llm 2.0.x
+
+The engine prepends five fixes (`LlmLogs::RubyLLMPatches`) that ruby_llm 2.0.0 lacks. Each one backports an upstream pull request, so dropping it once a ruby_llm release includes that PR changes no behaviour (exceptions are noted). They install only on ruby_llm >= 2.0.0, and log a warning on 2.1 or later so you re-check them.
+
+| Patch | Upstream PR |
+|---|---|
+| BedrockSigV4, RetrySSLError | [crmne/ruby_llm#1024](https://github.com/crmne/ruby_llm/pull/1024) |
+| ConverseReasoningConfig, ConverseClaudeAdaptiveThinking | [crmne/ruby_llm#1025](https://github.com/crmne/ruby_llm/pull/1025) |
+| ConverseForeignReasoning | [crmne/ruby_llm#1026](https://github.com/crmne/ruby_llm/pull/1026) |
+
+- **BedrockSigV4** ([#1024](https://github.com/crmne/ruby_llm/pull/1024), "Sign each Bedrock attempt when it is sent") re-signs every Bedrock attempt at send time, over the body being sent, and removes an `X-Amz-Security-Token` the new signature no longer carries. Upstream 2.0.0 signs once before the retry middleware, so a retry after a long timeout replays an expired signature (403 "Signature expired"). Drop when a ruby_llm release includes #1024.
+- **RetrySSLError** ([#1024](https://github.com/crmne/ruby_llm/pull/1024), "Retry requests that fail with a TLS error") adds `Faraday::SSLError` (for example "SSL_connect ... unexpected eof") to the retried exceptions. This is the same trade-off ruby_llm already accepts for read timeouts: a request that reached the server may be sent twice. ruby_llm's `retry_if` still refuses to retry requests marked non-idempotent and streams that already delivered content. Drop when a ruby_llm release includes #1024.
+- **ConverseReasoningConfig** ([#1025](https://github.com/crmne/ruby_llm/pull/1025), "Send reasoning_config to models that publish it") sends a reasoning effort on Bedrock Converse as `additionalModelRequestFields: {reasoning_config: "<effort>"}` (including `none`, which is also what `with_thinking(false)` resolves to for these models) when the model's Converse `additionalRequestFieldsSchema`, or that of another registry entry for the same foundation model, publishes a `reasoning_config` enum (OpenAI GPT 5.6/6 Astra, xAI Grok 4.6, ...). Upstream 2.0.0 sends `reasoning_effort`, which Bedrock rejects for GPT (400 unknown_parameter). Thinking turned off, budgets, Claude, Nova, and gpt-oss are unchanged. Beyond #1025, OpenAI GPT ids with no published schema (ruby_llm 2.0.0's registry lacks GPT-6 Sol/Luna) get the same shape, under any region prefix. Drop when a ruby_llm release includes #1025; that fallback goes with it, so first check that the registry you run publishes the schema for every GPT id you use (or add `metadata.converse.additionalRequestFieldsSchema` to your catalog entry), or those ids go back to `reasoning_effort`.
+- **ConverseClaudeAdaptiveThinking** ([#1025](https://github.com/crmne/ruby_llm/pull/1025), "Think adaptively on adaptive-only Claude via Converse") sends adaptive thinking to adaptive-only Claude models on Bedrock Converse (the registry advertises an `effort` option and no `budget_tokens` option: Sonnet 5, Opus 4.7/4.8/5, Fable 5) as `additionalModelRequestFields: {thinking: {type: "adaptive"}, output_config: {effort: ...}}` (every advertised tier, `xhigh` and `max` included; `{thinking: {type: "adaptive"}}` alone when no effort is set, as for `with_thinking(true)` or a `display` alone; nothing for `none`; no `display` is sent). Upstream 2.0.0 sends a fixed `reasoning_config` budget, which these models reject ("thinking.type.enabled" is not supported for this model). Any budget, thinking turned off, budget-style Claude (Haiku 4.5, Sonnet 4.6), and other vendors are unchanged. An unregistered id takes its reasoning options from a registry entry for the same foundation model. Drop when a ruby_llm release includes #1025.
+- **ConverseForeignReasoning** ([#1026](https://github.com/crmne/ruby_llm/pull/1026), "Drop Bedrock reasoning another model family produced" and "Give application inference profiles no vendor") replays a message's reasoning only to a model of the same family on Bedrock Converse. Upstream 2.0.0 replays every assistant message's reasoning to whatever model is next, and Claude and GPT are both the `bedrock` provider: a chat Claude answered and GPT continues fails with "This model doesn't support the reasoningContent.reasoningText.text field", and a chat GPT answered and Claude continues hands Claude GPT's encrypted reasoning. A model's family is `anthropic`, `openai`, or the vendor segment of any other Bedrock id (`amazon`, `meta`, ...), whatever its region prefix; an application inference profile ARN names no family, even with a dot in its id (`.../application-inference-profile/team.prod`). The producer is `RubyLLM::Message#model` (for a persisted message, the model of its last successful usage entry). Reasoning from another family is dropped. Anthropic targets otherwise get upstream's replay unchanged, and so does a target that names no family. **This patch is stricter than #1026 on purpose:** a non-Anthropic target whose producer is unknown or of the same family gets only the `redactedContent` blocks stored in `raw_reasoning["converse"]` (GPT's own encrypted reasoning across tool-call rounds), never `reasoningText` or the thinking text/signature fallback, where #1026 replays them all. Drop when a ruby_llm release includes #1026, accepting that looser replay (or keep the stricter rule as a patch of its own).
+
+Not backported: #1025's first commit ("Recognise the in. Bedrock inference profile prefix"), which adds `in` to `Converse::REGION_PREFIXES` and also changes region rewriting and Mantle routing. The patches here match ids under any region prefix instead.
 
 ## Requirements
 

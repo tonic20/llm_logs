@@ -27,21 +27,33 @@ module LlmLogs
             output: { "content" => span.serialize_content(message.content) },
             input_tokens: message.input_tokens,
             output_tokens: message.output_tokens,
-            cost: compute_cost(message)
+            cost: compute_cost(message, request: request, provider: provider)
           )
           span.finish
         end
         trace
       end
 
-      def compute_cost(message)
-        model_info = RubyLLM.models.find(message.model_id)
-        return nil unless model_info&.input_price_per_million && model_info&.output_price_per_million
+      # Prices the request at the submitted model's standard rates for this provider (the
+      # Bedrock id, e.g. us.anthropic.claude-haiku-4-5-...), falling back to the id the result
+      # reports (a native Anthropic id resolves to the anthropic provider's rates). nil when
+      # neither is in the registry or the registry has no price for the tokens used.
+      def compute_cost(message, request:, provider:)
+        model = pricing_model(request.model, provider) || pricing_model(message.model_id, nil)
+        return nil unless model
 
-        raw = (message.input_tokens.to_f * model_info.input_price_per_million +
-               message.output_tokens.to_f * model_info.output_price_per_million) / 1_000_000
-        (raw * BATCH_COST_MULTIPLIER).round(6)
+        tokens = RubyLLM::Tokens.new(input: message.input_tokens.to_i, output: message.output_tokens.to_i)
+        total = model.cost_for(tokens).total
+        total && (total * BATCH_COST_MULTIPLIER).round(6)
       rescue StandardError
+        nil
+      end
+
+      def pricing_model(model_id, provider)
+        return nil if model_id.blank?
+
+        provider.present? ? RubyLLM.models.find(model_id, provider: provider) : RubyLLM.models.find(model_id)
+      rescue RubyLLM::ModelNotFoundError
         nil
       end
     end

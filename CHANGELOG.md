@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-10-03
+
+### Changed
+- Runs on ruby_llm 2.0 (runtime dependency `>= 2.0, < 3`). Structured-output schemas are plain schema Hashes (Schematist replaced `RubyLLM::Schema`), and batch handlers receive a `LlmLogs::Batch::Adapters::Bedrock::Result`.
+- `auto_instrument` now subscribes to ruby_llm's `chat.ruby_llm` and `tool_call.ruby_llm` notifications and records one `llm` span per provider round and one tool span per call, as siblings. This fixes the previous nested spans that lost the first round's tokens and double-counted the last round. Cache-write and thinking tokens go in span metadata. `TraceRecorder.compute_cost` prices through the ruby_llm 2.0 registry.
+- Requires `RubyLLM.config.instrumenter` to be `ActiveSupport::Notifications`. The Railtie default sets it, and `LlmLogs::Instrumentation::RubyLlmChat.install!` sets it when unset.
+- `batch_adapters` defaults to `{}`.
+
+### Added
+- `LlmLogs::RubyLLMPatches`, installed for ruby_llm >= 2.0.0 (with a warning from 2.1 on), backports of open upstream pull requests, each to be dropped once a ruby_llm release includes its PR (see the README):
+  - `BedrockSigV4` re-signs every Bedrock attempt when it is sent, dropping a stale `X-Amz-Security-Token`, and `RetrySSLError` retries `Faraday::SSLError` (the same trade-off ruby_llm accepts for read timeouts; non-idempotent requests and streams that already delivered content are still not retried). Backport of [crmne/ruby_llm#1024](https://github.com/crmne/ruby_llm/pull/1024).
+  - `ConverseReasoningConfig` sends a reasoning effort on Converse as the `reasoning_config` value to models whose Bedrock schema publishes that enum (GPT, Grok 4.6), `none` included. Backport of [crmne/ruby_llm#1025](https://github.com/crmne/ruby_llm/pull/1025), plus a fallback for OpenAI GPT ids the registry has no schema for (GPT-6 Sol/Luna, under any region prefix, including `in.`).
+  - `ConverseForeignReasoning` replays a message's reasoning only to a model of the same family (anthropic, openai, or another vendor, judged by the message's producing model; an application inference profile names none), with a non-Anthropic target keeping only `redactedContent`. Backport of [crmne/ruby_llm#1026](https://github.com/crmne/ruby_llm/pull/1026), deliberately stricter than it for non-Anthropic targets.
+
+### Fixed
+- `LlmLogs::RubyLLMPatches::ConverseClaudeAdaptiveThinking` (backport of [crmne/ruby_llm#1025](https://github.com/crmne/ruby_llm/pull/1025)) sends adaptive-only Claude models on Bedrock Converse (Sonnet 5, Opus 4.7/4.8/5, Fable 5) `{thinking: {type: "adaptive"}, output_config: {effort:}}` instead of the fixed `reasoning_config` budget they reject, so every advertised effort (including `xhigh` and `max`) works, and `with_thinking(true)` or a `display` alone turns adaptive thinking on. Budget-style Claude, any budget, and other vendors are unchanged. Drop it when a ruby_llm release includes #1025.
+
+### Removed
+- The OpenAI Responses batch adapter, `LlmLogs.batch_provider`, and `config.batch_provider`. Batching runs on Bedrock only; `Batch.batch_provider_for` returns `:bedrock` or `nil`.
+
 ## [0.5.1] - 2026-09-23
 
 ### Fixed

@@ -19,11 +19,23 @@ module LlmLogs
       LlmLogs::Tracer.current_span = parent_span
     end
 
+    # +message+ is a RubyLLM 2.x Message (or anything with +content+ and +tokens+).
     def record_response(message)
       self.output = { content: serialize_content(message.content) }
-      self.input_tokens = message.input_tokens
-      self.output_tokens = message.output_tokens
-      self.cached_tokens = message.cached_tokens
+      record_tokens(message.tokens)
+    end
+
+    # Copies a RubyLLM::Tokens onto the span. +input+ is non-cached input (RubyLLM 2.x no
+    # longer subtracts cache buckets from it); cache writes and thinking have no column and
+    # go to metadata.
+    def record_tokens(tokens)
+      return unless tokens
+
+      self.input_tokens = tokens.input
+      self.output_tokens = tokens.output
+      self.cached_tokens = tokens.cache_read
+      set_attribute("cache_write_tokens", tokens.cache_write) unless tokens.cache_write.nil?
+      set_attribute("thinking_tokens", tokens.thinking) unless tokens.thinking.nil?
     end
 
     # Structured (schema) responses arrive as a Hash/Array; keep them as-is so the

@@ -54,10 +54,6 @@ module LlmLogs
     configuration.batch_enabled
   end
 
-  def self.batch_provider
-    configuration.batch_provider
-  end
-
   def self.bedrock_batch
     configuration.bedrock_batch
   end
@@ -71,7 +67,7 @@ module LlmLogs
   end
 
   def self.batch_adapters
-    @batch_adapters ||= {openai_responses: LlmLogs::Batch::Adapters::OpenaiResponses.new}
+    @batch_adapters ||= {}
   end
 
   def self.register_batch_adapter(provider, adapter)
