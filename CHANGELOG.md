@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.0] - 2026-10-02
+## [0.6.0] - 2026-10-03
 
 ### Changed
 - Runs on ruby_llm 2.0 (runtime dependency `>= 2.0, < 3`). Structured-output schemas are plain schema Hashes (Schematist replaced `RubyLLM::Schema`), and batch handlers receive a `LlmLogs::Batch::Adapters::Bedrock::Result`.
