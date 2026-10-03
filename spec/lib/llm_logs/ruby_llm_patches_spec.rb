@@ -126,6 +126,45 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       expect(attempts.map { |a| a[:date] }.uniq.size).to eq(2)
     end
 
+    # crmne/ruby_llm#1024 "drops a session token the retry is no longer signed with".
+    it "drops a session token the retry is no longer signed with" do
+      sts = RubyLLM::Providers::Bedrock::Credentials.new(access_key_id: "AKIDEXAMPLE", secret_access_key: "secret",
+        session_token: "sts-token")
+      static = RubyLLM::Providers::Bedrock::Credentials.new(access_key_id: "AKIDEXAMPLE", secret_access_key: "secret",
+        session_token: nil)
+      recorded = attempts
+      credential_provider = Object.new
+      credential_provider.define_singleton_method(:credentials) { recorded.empty? ? sts : static }
+      RubyLLM.config.bedrock_credential_provider = credential_provider
+      stub_request(:post, "#{runtime}/model/#{claude}/converse").to_return(timeout_then(converse_ok))
+
+      RubyLLM.chat(model: claude, provider: :bedrock, assume_model_exists: true).ask("hi")
+
+      expect(attempts.map { |a| a[:token] }).to eq(["sts-token", nil])
+      expect(attempts.last[:auth]).to include("SignedHeaders=host;x-amz-content-sha256;x-amz-date,")
+    ensure
+      RubyLLM.config.bedrock_credential_provider = nil
+    end
+
+    # crmne/ruby_llm#1024 "signs a video status retry when it is sent" (a GET, empty body).
+    it "re-signs a video status GET retry" do
+      job_id = "arn:aws:bedrock:us-west-2:123456789012:async-invoke/abc123"
+      path = "/async-invoke/#{URI.encode_www_form_component(job_id)}"
+      stub_request(:get, "#{runtime}#{path}")
+        .to_return(timeout_then(status: 200, body: {status: "InProgress"}.to_json,
+          headers: {"Content-Type" => "application/json"}))
+      provider = RubyLLM::Providers::Bedrock.new(RubyLLM.config)
+      model = RubyLLM.models.all.find { |m| m.provider == "bedrock" && m.id.start_with?("luma.ray") }
+      protocol = RubyLLM::Protocols::Bedrock::AsyncVideos.new(provider, model)
+
+      expect(RubyLLM::VideoJob.new(id: job_id, protocol: protocol, model: model.id).refresh).to be_pending
+
+      expect(attempts.map { |a| a[:date] }).to eq(%w[20261002T141202Z 20261002T141802Z])
+      expect(attempts.last[:auth]).to eq(
+        RubyLLM::Providers::Bedrock.new(RubyLLM.config).sign_headers("GET", path, "")["Authorization"]
+      )
+    end
+
     it "keeps the bedrock-mantle signing service for mantle requests" do
       mantle = "https://bedrock-mantle.us-west-2.api.aws"
       anthropic_ok = {status: 200, headers: {"Content-Type" => "application/json"},
@@ -493,6 +532,17 @@ RSpec.describe LlmLogs::RubyLLMPatches do
 
       expect(response.content).to eq("OK")
       expect(a_request(:post, "#{runtime}/model/#{claude}/converse")).to have_been_made.twice
+    end
+
+    # crmne/ruby_llm#1024 "submits a batch once when the first attempt fails with a TLS error".
+    it "still sends a non-idempotent request once" do
+      stub = stub_request(:post, "#{runtime}/async-invoke")
+        .to_raise(OpenSSL::SSL::SSLError.new("SSL_read: unexpected eof while reading"))
+        .then.to_return(converse_ok)
+      connection = RubyLLM::Providers::Bedrock.new(RubyLLM.config).connection
+
+      expect { connection.post("/async-invoke", {}, idempotent: false) }.to raise_error(Faraday::SSLError)
+      expect(stub).to have_been_requested.once
     end
   end
 
