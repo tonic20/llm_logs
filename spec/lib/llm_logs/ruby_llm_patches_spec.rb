@@ -261,6 +261,11 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       expect(reasoning_fields("us.anthropic.claude-sonnet-5", effort: :none)).to be_nil
     end
 
+    it "turns adaptive thinking on when only a display is set, as upstream #1025 does" do
+      # with_thinking(display:) leaves effort and enabled unset; Converse sends no display.
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", display: :summarized)).to eq(thinking: {type: "adaptive"})
+    end
+
     it "recognises adaptive-only Claude under a region prefix ruby_llm does not strip" do
       # Unregistered: its reasoning options come from another entry for the same foundation model.
       route_in_prefix_to_converse
@@ -272,6 +277,13 @@ RSpec.describe LlmLogs::RubyLLMPatches do
       expect(reasoning_fields("us.anthropic.claude-sonnet-5", budget: 2048))
         .to eq(reasoning_config: {type: "enabled", budget_tokens: 2048})
       expect(reasoning_fields("us.anthropic.claude-sonnet-5", false)).to eq(reasoning_config: {type: "disabled"})
+    end
+
+    it "leaves any budget, even a non-Integer one, to upstream as #1025 does" do
+      # #1025 thinks adaptively only when no budget is set; upstream then ignores a non-Integer
+      # budget and sizes one from the effort.
+      expect(reasoning_fields("us.anthropic.claude-sonnet-5", effort: :low, budget: 2048.0))
+        .to eq(reasoning_config: {type: "enabled", budget_tokens: 1024})
     end
 
     it "keeps upstream budgets for budget-style Claude" do

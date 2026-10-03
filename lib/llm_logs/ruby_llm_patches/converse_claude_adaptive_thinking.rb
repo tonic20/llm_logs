@@ -1,6 +1,7 @@
 module LlmLogs
   module RubyLLMPatches
     # Adaptive thinking for adaptive-only Claude models on Bedrock Converse.
+    # Backport of crmne/ruby_llm#1025 ("Think adaptively on adaptive-only Claude via Converse").
     #
     # ruby_llm 2.0.0 (Protocols::Converse::Chat#format_reasoning_fields) turns a Claude
     # reasoning effort into a fixed budget, `additionalModelRequestFields: {reasoning_config:
@@ -12,13 +13,14 @@ module LlmLogs
     # `{thinking: {type: "adaptive"}, output_config: {effort: "low"}}`, the rule upstream's own
     # Anthropic protocol already applies (Protocols::Anthropic::Chat#thinking_mode).
     #
-    # For an adaptive-only Claude target without an explicit integer budget:
+    # For an adaptive-only Claude target with no budget set:
     # - effort other than "none": adaptive thinking, effort in output_config (every advertised
     #   tier, xhigh and max included);
-    # - thinking enabled with no effort: adaptive thinking alone;
+    # - no effort (with_thinking(true), or a display alone): adaptive thinking alone;
     # - effort "none": nothing.
-    # Everything else goes to super: explicit budgets, thinking turned off (reasoning_config
-    # disabled), budget-style Claude (Haiku 4.5, Sonnet 4.6), GPT, Nova and other vendors.
+    # No `display` is sent (Converse has no field for it). Everything else goes to super: any
+    # budget, thinking turned off (reasoning_config disabled), budget-style Claude (Haiku 4.5,
+    # Sonnet 4.6), GPT, Nova and other vendors.
     #
     # The target is Anthropic under any region prefix (ConverseForeignReasoning::ANTHROPIC).
     # A model with no reasoning options of its own (an unregistered id, such as an "in."
@@ -30,15 +32,14 @@ module LlmLogs
       private
 
       def format_reasoning_fields(thinking, model, max_output_tokens = nil)
-        return super unless thinking&.enabled? && thinking.enabled != false && !thinking.budget.is_a?(Integer)
+        return super unless thinking&.enabled? && thinking.enabled != false && thinking.budget.nil?
         return super unless llm_logs_adaptive_only_claude?(model)
 
         effort = thinking.effort.to_s
         return nil if effort == "none"
-        return {thinking: {type: "adaptive"}, output_config: {effort: effort}} unless effort.empty?
-        return {thinking: {type: "adaptive"}} if thinking.enabled == true
+        return {thinking: {type: "adaptive"}} if effort.empty?
 
-        super
+        {thinking: {type: "adaptive"}, output_config: {effort: effort}}
       end
 
       def llm_logs_adaptive_only_claude?(model)
