@@ -3,6 +3,7 @@ require "faraday"
 module LlmLogs
   module RubyLLMPatches
     # Signs every Bedrock attempt when it is sent.
+    # Backport of crmne/ruby_llm#1024 ("Sign each Bedrock attempt when it is sent").
     #
     # ruby_llm 2.0.0 signs inside the request block (Protocols::Converse#signed_post,
     # Converse::Streaming#stream_response, InvokeModel, Mantle, Guardrails, Rerank, ...),

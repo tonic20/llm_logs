@@ -2,6 +2,7 @@ require "faraday"
 
 module LlmLogs
   module RubyLLMPatches
+    # Backport of crmne/ruby_llm#1024 ("Retry requests that fail with a TLS error").
     # Retries TLS handshake failures (Faraday::SSLError, e.g. "SSL_connect ... unexpected
     # eof"). faraday-net_http wraps every OpenSSL::SSL::SSLError as Faraday::SSLError, including
     # read errors after the request was written, so this is the same trade-off ruby_llm

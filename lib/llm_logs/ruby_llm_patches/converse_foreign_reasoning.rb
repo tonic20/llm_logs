@@ -1,6 +1,7 @@
 module LlmLogs
   module RubyLLMPatches
     # Bedrock Converse replays a message's reasoning only to a model of the same family.
+    # Backport of crmne/ruby_llm#1026, stricter than it on purpose (see below).
     #
     # ruby_llm 2.0.0 (Protocols::Converse::Chat#format_thinking_blocks) replays every assistant
     # message's reasoning (raw_reasoning["converse"] blocks, else thinking text/signature) as

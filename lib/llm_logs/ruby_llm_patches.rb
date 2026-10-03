@@ -5,7 +5,9 @@ require "llm_logs/ruby_llm_patches/converse_claude_adaptive_thinking"
 require "llm_logs/ruby_llm_patches/retry_ssl_error"
 
 module LlmLogs
-  # Bedrock fixes that upstream ruby_llm 2.0.0 lacks, applied with Module#prepend.
+  # Bedrock fixes that upstream ruby_llm 2.0.0 lacks, applied with Module#prepend. Each
+  # backports an open upstream PR (crmne/ruby_llm#1024, #1025, #1026; see the README), so it
+  # can be dropped once a ruby_llm release includes that PR.
   # Each was verified against 2.0.x only: on 1.x they are skipped (different internals),
   # on a newer ruby_llm they still install but log a warning so we re-check whether
   # upstream fixed the bug (then drop the patch) or moved the method (then the patch
