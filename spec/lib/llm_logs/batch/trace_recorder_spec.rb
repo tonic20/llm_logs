@@ -48,8 +48,8 @@ RSpec.describe LlmLogs::Batch::TraceRecorder do
   end
 
   it "leaves the cost empty for a model without registry pricing" do
-    request.update!(model: "us.openai.gpt-6-sol")
-    unpriced = message.dup.tap { |m| m.model_id = "us.openai.gpt-6-sol" }
+    request.update!(model: "us.acme.unpriced-model")
+    unpriced = message.dup.tap { |m| m.model_id = "us.acme.unpriced-model" }
 
     expect(described_class.record(request: request, message: unpriced, provider: "bedrock").spans.first.cost).to be_nil
   end
