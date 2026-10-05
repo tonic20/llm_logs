@@ -1,3 +1,19 @@
+GIT
+  remote: https://github.com/crmne/ruby_llm.git
+  revision: 16ad59b0b5bd6ba26ac38071e08f00aa1771f52b
+  ref: 16ad59b0b5bd6ba26ac38071e08f00aa1771f52b
+  specs:
+    ruby_llm (2.0.0)
+      base64
+      faraday (>= 1.10.0)
+      faraday-multipart (>= 1)
+      faraday-net_http (>= 1)
+      faraday-retry (>= 1)
+      json (< 4)
+      marcel (>= 1.0, < 3)
+      schematist (~> 1.1)
+      zeitwerk (~> 2)
+
 PATH
   remote: .
   specs:
@@ -129,7 +145,6 @@ GEM
     drb (2.2.3)
     erb (6.0.2)
     erubi (1.13.1)
-    event_stream_parser (1.0.0)
     factory_bot (6.5.6)
       activesupport (>= 6.1.0)
     factory_bot_rails (6.5.1)
@@ -300,17 +315,6 @@ GEM
       rspec-mocks (~> 3.13)
       rspec-support (~> 3.13)
     rspec-support (3.13.7)
-    ruby_llm (2.0.0)
-      base64
-      event_stream_parser (~> 1)
-      faraday (>= 1.10.0)
-      faraday-multipart (>= 1)
-      faraday-net_http (>= 1)
-      faraday-retry (>= 1)
-      json (< 3)
-      marcel (>= 1.0, < 3)
-      schematist (~> 1.1)
-      zeitwerk (~> 2)
     schematist (1.1.0)
     securerandom (0.4.1)
     sqlite3 (2.9.6-aarch64-linux-gnu)
@@ -361,6 +365,7 @@ DEPENDENCIES
   pg (~> 1.5)
   puma
   rspec-rails (~> 7.0)
+  ruby_llm!
   sqlite3 (>= 2.1)
   webmock (~> 3.0)
 
