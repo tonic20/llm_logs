@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-10-08
+
+### Changed
+- Requires ruby_llm 2.1 (runtime dependency `>= 2.1, < 3`).
+
+### Removed
+- `LlmLogs::RubyLLMPatches` and the `llm_logs.ruby_llm_patches` initializer. The fixes are upstream in ruby_llm 2.1: #1024 re-signs every Bedrock attempt and retries `Faraday::SSLError` (`BedrockSigV4`, `RetrySSLError`), #1025 sends `reasoning_config` to GPT and adaptive thinking to adaptive-only Claude (`ConverseReasoningConfig`, `ConverseClaudeAdaptiveThinking`), and ab4a4f06 replays reasoning only to the model that produced it (`ConverseForeignReasoning`, which #1026 had targeted). Two differences from the patches: a GPT id gets `reasoning_config` only when its registry entry publishes the schema (ruby_llm's registry does for GPT-6 Sol/Luna; the patch also matched GPT ids by name), and reasoning replays only to the exact producing model rather than to any model of its family.
+
 ## [0.6.0] - 2026-10-03
 
 ### Changed

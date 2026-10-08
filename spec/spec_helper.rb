@@ -7,12 +7,10 @@ require "ruby_llm"
 require "webmock/rspec"
 
 require "llm_logs/instrumentation/ruby_llm_chat"
-require "llm_logs/ruby_llm_patches"
 RubyLLM.configure { |c| c.openai_api_key = "test-key" }
 # The dummy app does not Bundler.require ruby_llm (a development dependency), so the
-# engine initializers skip it at boot; install explicitly (both are idempotent).
+# engine initializer skips it at boot; install explicitly (it is idempotent).
 LlmLogs::Instrumentation::RubyLlmChat.install!
-LlmLogs::RubyLLMPatches.install!
 WebMock.disable_net_connect!(allow_localhost: true)
 
 if ENV["LLM_LOGS_DATABASE"] == "sqlite"
