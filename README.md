@@ -337,7 +337,7 @@ With `auto_instrument` on, LlmLogs subscribes to ruby_llm's `chat.ruby_llm` and 
 
 ### Bedrock fixes in ruby_llm
 
-llm_logs no longer patches ruby_llm. The Bedrock fixes it used to prepend are in ruby_llm itself from the first release after 2.0.0 that includes [crmne/ruby_llm#1024](https://github.com/crmne/ruby_llm/pull/1024) (re-sign each attempt, retry TLS errors), [#1025](https://github.com/crmne/ruby_llm/pull/1025) (`reasoning_config` for GPT, adaptive thinking for adaptive-only Claude) and [ab4a4f06](https://github.com/crmne/ruby_llm/commit/ab4a4f060fc4760053105b92500c042c52c3d968) (reasoning replays only to the model that produced it). Run that release or later. Two behaviours differ from the old patches:
+llm_logs no longer patches ruby_llm. The Bedrock bugs it used to patch are fixed in ruby_llm 2.1: [crmne/ruby_llm#1024](https://github.com/crmne/ruby_llm/pull/1024) (re-sign each attempt, retry TLS errors), [#1025](https://github.com/crmne/ruby_llm/pull/1025) (`reasoning_config` for GPT, adaptive thinking for adaptive-only Claude) and [ab4a4f06](https://github.com/crmne/ruby_llm/commit/ab4a4f060fc4760053105b92500c042c52c3d968) (reasoning replays only to the model that produced it). llm_logs 0.7.0 requires ruby_llm 2.1 or later. Two behaviours differ from the old patches:
 
 - GPT effort goes out as `reasoning_config` only when the model's registry entry publishes that schema. ruby_llm's registry does for the GPT-6 and GPT-5.6 ids; a catalog entry of your own for a GPT id needs `metadata.converse.additionalRequestFieldsSchema`, or the effort goes out as `reasoning_effort`, which Bedrock rejects.
 - Reasoning replays only to the exact model that produced it, not to any model of the same family.
@@ -346,6 +346,7 @@ llm_logs no longer patches ruby_llm. The Bedrock fixes it used to prepend are in
 
 - Rails 8.0+
 - Ruby 3.3+
+- ruby_llm 2.1+
 - PostgreSQL
 
 ## License
