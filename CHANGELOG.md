@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2026-10-22
+
+### Fixed
+- Each rake task (`llm_logs:prompts:sync`) runs once. The engine loaded `lib/tasks/llm_logs.rake` from a `rake_tasks` block on top of Rails loading every engine `lib/tasks/*.rake` itself, so the task body ran twice per invocation.
+
 ## [0.7.0] - 2026-10-08
 
 ### Changed
