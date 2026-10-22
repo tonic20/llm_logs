@@ -54,6 +54,28 @@ RSpec.describe LlmLogs::Trace do
       expect(trace.total_cost).to eq(0.003)
     end
 
+    it "totals the spans in one query" do
+      trace = LlmLogs::Trace.create!(name: "test", started_at: Time.current, status: "running")
+      LlmLogs::Span.create!(trace: trace, name: "span1", span_type: "llm", started_at: Time.current,
+                            input_tokens: 100, output_tokens: 50, cached_tokens: 7, cost: 0.001)
+      LlmLogs::Span.create!(trace: trace, name: "tool", span_type: "tool", started_at: Time.current)
+
+      selects = []
+      record = ->(*, payload) { selects << payload[:sql] if payload[:sql].start_with?("SELECT") && payload[:sql].include?("llm_logs_spans") }
+      ActiveSupport::Notifications.subscribed(record, "sql.active_record") { trace.complete! }
+
+      expect(selects.size).to eq(1)
+      expect([trace.total_input_tokens, trace.total_output_tokens, trace.total_cached_tokens]).to eq([100, 50, 7])
+      expect(trace.total_cost).to eq(0.001)
+    end
+
+    it "totals a trace without spans as zero" do
+      trace = LlmLogs::Trace.create!(name: "test", started_at: Time.current, status: "running")
+      trace.fail!
+
+      expect([trace.total_input_tokens, trace.total_output_tokens, trace.total_cached_tokens, trace.total_cost]).to eq([0, 0, 0, 0])
+    end
+
     it "is idempotent" do
       trace = LlmLogs::Trace.create!(name: "test", started_at: Time.current, status: "running")
       trace.complete!
