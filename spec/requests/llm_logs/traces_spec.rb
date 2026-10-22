@@ -108,6 +108,30 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       expect(response.body).to include("claude-sonnet-4")
     end
 
+    def count_queries(&block)
+      count = 0
+      counter = ->(*, payload) { count += 1 unless payload[:name] == "SCHEMA" || payload[:cached] }
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &block)
+      count
+    end
+
+    def add_span(parent: nil, **attributes)
+      LlmLogs::Span.create!(trace: trace, name: "tool.weather", span_type: "tool", started_at: Time.current,
+                            parent_span: parent, **attributes)
+    end
+
+    it "loads the span tree in a fixed number of queries" do
+      get "/llm_logs/traces/#{trace.id}"
+      baseline = count_queries { get "/llm_logs/traces/#{trace.id}" }
+
+      parent = add_span
+      3.times { add_span(parent: add_span(parent: parent)) }
+      queries = count_queries { get "/llm_logs/traces/#{trace.id}" }
+
+      expect(queries).to eq(baseline)
+      expect(Nokogiri::HTML(response.body).css("details").size).to eq(8)
+    end
+
     it "shows prompt version link when present" do
       prompt = LlmLogs::Prompt.create!(slug: "test", name: "Test Prompt")
       prompt.update_content!(messages: [{ "role" => "user", "content" => "Hello" }])

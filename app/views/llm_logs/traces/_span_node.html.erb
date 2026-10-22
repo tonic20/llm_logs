@@ -60,7 +60,7 @@
     </div>
   </details>
 
-  <% span.child_spans.order(:started_at).each do |child| %>
-    <%= render partial: "llm_logs/traces/span_node", locals: { span: child, depth: depth + 1, trace: trace } %>
+  <% child_spans.fetch(span.id, []).each do |child| %>
+    <%= render partial: "llm_logs/traces/span_node", locals: { span: child, depth: depth + 1, trace: trace, child_spans: child_spans } %>
   <% end %>
 </div>
