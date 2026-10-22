@@ -9,6 +9,31 @@ module LlmLogs
     validates :status, presence: true, inclusion: { in: %w[ok error] }
     validates :started_at, presence: true
 
+    # An llm round that continues the trace's previous round stores only the messages it
+    # added (input) plus how many it carried over from that round (input_offset).
+    def input_base_span_id
+      metadata&.dig("input_base_span_id")
+    end
+
+    def input_offset
+      metadata&.dig("input_offset")
+    end
+
+    # The messages this round sent, rebuilt from the chain of rounds it continues. Spans
+    # recorded before llm_logs 0.8 have no base and already hold their full input.
+    def full_input
+      return input unless input_base_span_id
+
+      rounds = trace.spans.where(span_type: "llm").where(id: ...id).select(:id, :input, :metadata).index_by(&:id)
+      chain = [self]
+      while (base = rounds[chain.first.input_base_span_id])
+        chain.unshift(base)
+      end
+      chain.drop(1).reduce(Array(chain.first.input)) do |messages, span|
+        messages.first(span.input_offset) + Array(span.input)
+      end
+    end
+
     def finish
       update!(
         completed_at: Time.current,

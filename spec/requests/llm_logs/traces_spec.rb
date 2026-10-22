@@ -132,6 +132,22 @@ RSpec.describe "LlmLogs::Traces", type: :request do
       expect(Nokogiri::HTML(response.body).css("details").size).to eq(8)
     end
 
+    it "shows only the new messages of a round that continues the previous one" do
+      continued = LlmLogs::Span.create!(
+        trace: trace, name: "chat.complete", span_type: "llm", started_at: Time.current,
+        input: [{"role" => "assistant", "content" => "Checking the weather"}],
+        metadata: {"input_base_span_id" => span.id, "input_offset" => 1}
+      )
+
+      get "/llm_logs/traces/#{trace.id}"
+      node = Nokogiri::HTML(response.body).css("details").find { |d| d.text.include?("Checking the weather") }
+      expect(node.text).to include("1 earlier message from the previous round")
+      expect(node.text.scan("Hello").size).to eq(0)
+
+      get "/llm_logs/traces/#{trace.id}/spans/#{continued.id}"
+      expect(response.body).to include("Hello", "Checking the weather")
+    end
+
     it "shows prompt version link when present" do
       prompt = LlmLogs::Prompt.create!(slug: "test", name: "Test Prompt")
       prompt.update_content!(messages: [{ "role" => "user", "content" => "Hello" }])

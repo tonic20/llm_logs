@@ -28,9 +28,15 @@
     </summary>
 
     <div class="mt-2 ml-4 space-y-3">
-      <% if span.input.present? %>
+      <% if span.input.present? || span.input_base_span_id %>
         <div>
           <h4 class="text-xs font-medium text-gray-500 uppercase mb-1">Input</h4>
+          <% if span.input_base_span_id %>
+            <p class="text-xs text-gray-500 mb-1">
+              New messages only; <%= pluralize(span.input_offset, "earlier message") %> from the previous round not repeated.
+              <%= link_to "Full input", trace_span_path(trace, span), class: "text-indigo-600 hover:text-indigo-900" %>
+            </p>
+          <% end %>
           <pre class="text-xs bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border"><%= pretty_json(span.input) %></pre>
         </div>
       <% end %>

@@ -17,6 +17,16 @@ module LlmLogs
       Fiber[:llm_logs_span] = span
     end
 
+    # The current trace's latest llm round, {trace_id:, span_id:, messages:}, kept so the next
+    # round can store only the messages it adds (see Instrumentation::RubyLlmChat).
+    def self.last_llm_round
+      Fiber[:llm_logs_last_llm_round]
+    end
+
+    def self.last_llm_round=(round)
+      Fiber[:llm_logs_last_llm_round] = round
+    end
+
     def self.start_trace(name, metadata: {})
       trace = LlmLogs::Trace.create!(
         name: name,
@@ -27,8 +37,10 @@ module LlmLogs
 
       previous_trace = Fiber[:llm_logs_trace]
       previous_span = Fiber[:llm_logs_span]
+      previous_round = Fiber[:llm_logs_last_llm_round]
       Fiber[:llm_logs_trace] = trace
       Fiber[:llm_logs_span] = nil
+      Fiber[:llm_logs_last_llm_round] = nil
 
       begin
         yield trace
@@ -39,6 +51,7 @@ module LlmLogs
         trace.complete! if trace.status == "running"
         Fiber[:llm_logs_trace] = previous_trace
         Fiber[:llm_logs_span] = previous_span
+        Fiber[:llm_logs_last_llm_round] = previous_round
       end
     end
 
