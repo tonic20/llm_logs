@@ -9,6 +9,14 @@ module LlmLogs
     validates :messages, presence: true
     validate :reasoning_effort_is_supported
 
+    # The newest version of each given prompt, without its messages (for listings).
+    def self.latest_for(prompt_ids)
+      newest = unscoped.where(prompt_id: prompt_ids).group(:prompt_id).select(:prompt_id, "MAX(version_number) AS version_number")
+      select(:id, :prompt_id, :version_number, :model, :model_params)
+        .joins("INNER JOIN (#{newest.to_sql}) newest ON newest.prompt_id = #{table_name}.prompt_id " \
+               "AND newest.version_number = #{table_name}.version_number")
+    end
+
     def reasoning_effort
       return nil unless model_params.is_a?(Hash)
 

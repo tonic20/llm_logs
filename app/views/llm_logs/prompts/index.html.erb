@@ -27,7 +27,7 @@
     </thead>
     <tbody class="divide-y divide-gray-200">
       <% @prompts.each do |prompt| %>
-        <% latest = prompt.versions.max_by(&:version_number) %>
+        <% latest = @latest_versions[prompt.id] %>
         <tr class="hover:bg-gray-50">
           <td class="px-4 py-3 text-sm">
             <%= link_to prompt.name, prompt_path(prompt), class: "text-indigo-600 hover:text-indigo-900 font-medium" %>

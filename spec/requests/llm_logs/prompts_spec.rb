@@ -48,6 +48,22 @@ RSpec.describe "LlmLogs::Prompts", type: :request do
       expect(response.body).to include(">low<")
     end
 
+    it "loads only each prompt's newest version, without its messages" do
+      2.times do |i|
+        prompt = LlmLogs::Prompt.create!(slug: "prompt-#{i}", name: "Prompt #{i}")
+        3.times { |n| prompt.update_content!(messages: [{ "role" => "user", "content" => "v#{n}" }], model: "model-#{i}-#{n}") }
+      end
+
+      loaded = []
+      record = ->(*, payload) { loaded << payload[:record_count] if payload[:class_name] == "LlmLogs::PromptVersion" }
+      ActiveSupport::Notifications.subscribed(record, "instantiation.active_record") { get "/llm_logs/prompts" }
+
+      expect(loaded.sum).to eq(2)
+      expect(response.body).to include("model-0-2", "model-1-2", "v3")
+      expect(response.body).not_to include("model-0-1")
+      expect(LlmLogs::PromptVersion.latest_for(LlmLogs::Prompt.ids).first.has_attribute?(:messages)).to be(false)
+    end
+
     it "renders a prompt that has no versions yet" do
       LlmLogs::Prompt.create!(slug: "empty", name: "Empty")
 

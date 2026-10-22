@@ -6,9 +6,10 @@ module LlmLogs
       tag = params[:tag].is_a?(String) ? params[:tag].presence : nil
       @sort      = SORT_COLUMNS.key?(params[:sort]) ? params[:sort] : "name"
       @direction = params[:direction] == "desc" ? "desc" : "asc"
-      scope = Prompt.order(SORT_COLUMNS.fetch(@sort) => @direction.to_sym).includes(:versions)
+      scope = Prompt.order(SORT_COLUMNS.fetch(@sort) => @direction.to_sym)
       scope = scope.with_tag(tag) if tag
       @prompts    = scope.page(params[:page]).per(LlmLogs.page_size)
+      @latest_versions = PromptVersion.latest_for(@prompts.map(&:id)).index_by(&:prompt_id)
       @active_tag = tag
       @all_tags   = Prompt.pluck(:tags).flatten.compact.uniq.sort
     end
