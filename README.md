@@ -71,6 +71,12 @@ Each span records:
 
 Tool calls are captured as child spans with tool name and arguments.
 
+Each provider round resends the whole conversation, so a round that continues the trace's previous round stores only the messages it added. Its metadata names the round it continues (`input_base_span_id`) and how many of that round's messages it carried over (`input_offset`). `span.full_input` returns the full list. A round that doesn't start with the previous round's messages, such as a second chat in the same trace, stores its full input.
+
+### Retention
+
+`LlmLogs::PurgeJob` deletes traces started more than `retention_days` ago, together with their spans. Schedule it from the host app, for example once a day. With `retention_days = nil` it keeps everything.
+
 ## Prompt Management
 
 Create prompts with [Mustache](https://mustache.github.io/) templates and auto-versioning.
@@ -323,7 +329,7 @@ Browse traces and manage prompts at `/llm_logs`.
 LlmLogs.setup do |config|
   config.enabled = true                                      # master switch for logging
   config.auto_instrument = true                              # subscribe to ruby_llm notifications (needs RubyLLM.config.instrumenter = ActiveSupport::Notifications)
-  config.retention_days = 30                                 # for future cleanup job
+  config.retention_days = 30                                 # LlmLogs::PurgeJob deletes older traces; nil keeps them
   config.prompts_source_path = Rails.root.join("db/data/prompts")
   config.prompt_subfolders = %w[skills fragments templates]
   config.batch_enabled = true                                # enable the batch API integration

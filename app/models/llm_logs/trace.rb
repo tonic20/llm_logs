@@ -38,10 +38,8 @@ module LlmLogs
     private
 
     def rollup_stats!
-      self.total_input_tokens = spans.sum(:input_tokens)
-      self.total_output_tokens = spans.sum(:output_tokens)
-      self.total_cached_tokens = spans.sum(:cached_tokens)
-      self.total_cost = spans.sum(:cost)
+      totals = spans.pick(*%w[input_tokens output_tokens cached_tokens cost].map { |column| Arel.sql("COALESCE(SUM(#{column}), 0)") })
+      self.total_input_tokens, self.total_output_tokens, self.total_cached_tokens, self.total_cost = totals
     end
   end
 end

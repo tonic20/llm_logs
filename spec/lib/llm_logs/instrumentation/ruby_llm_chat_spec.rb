@@ -107,7 +107,11 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
     expect(tool.input).to eq("city" => "Berlin")
     expect(tool.output).to eq("city" => "Berlin", "temp_c" => 21)
 
-    expect(llm2.input.map { |m| m["role"] }).to eq(%w[system user assistant tool])
+    # Round 2 stores only the messages round 1 didn't send; the rest is read from round 1.
+    expect(llm2.input.map { |m| m["role"] }).to eq(%w[assistant tool])
+    expect(llm2.metadata).to include("input_base_span_id" => llm1.id, "input_offset" => 2)
+    expect(llm2.full_input).to eq(llm1.input + llm2.input)
+    expect(llm2.full_input.map { |m| m["role"] }).to eq(%w[system user assistant tool])
     expect(llm2.output["content"]).to eq("It is 21C in Berlin.")
     expect([llm2.input_tokens, llm2.output_tokens, llm2.cached_tokens]).to eq([180, 12, 1200])
     expect(trace.total_input_tokens).to eq(300)
@@ -192,6 +196,49 @@ RSpec.describe LlmLogs::Instrumentation::RubyLlmChat do
     expect([primary.model, primary.status]).to eq([model, "error"])
     expect([fallback.model, fallback.status]).to eq(["us.anthropic.claude-sonnet-4-6", "ok"])
     expect(fallback.input_tokens).to eq(180)
+    # The fallback resends the primary's messages, so it stores none of its own.
+    expect(fallback.input).to eq([])
+    expect(fallback.full_input).to eq(primary.input)
+  end
+
+  it "stores a round's full input when it doesn't continue the trace's previous round" do
+    stub_converse(json_response(answer_round), json_response(answer_round))
+
+    trace = nil
+    LlmLogs.trace("two_chats") do |t|
+      trace = t
+      RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true).with_instructions("Be brief.").ask("hi")
+      RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true).with_instructions("Be long.").ask("hi")
+    end
+
+    first, second = trace.reload.spans.order(:id).to_a
+    expect(second.input.map { |m| m["content"] }).to eq(["Be long.", "hi"])
+    expect(second.metadata).not_to include("input_base_span_id", "input_offset")
+    expect(second.full_input).to eq(second.input)
+    expect(first.full_input).to eq(first.input)
+  end
+
+  it "starts each trace from the full input" do
+    stub_converse(json_response(answer_round), json_response(answer_round), json_response(answer_round))
+    chat = RubyLLM.chat(model: model, provider: :bedrock, assume_model_exists: true)
+
+    outer = inner = nil
+    LlmLogs.trace("outer") do |t|
+      outer = t
+      chat.ask("one")
+      LlmLogs.trace("inner") do |t2|
+        inner = t2
+        chat.ask("two")
+      end
+      chat.ask("three")
+    end
+
+    expect(inner.reload.spans.sole.input.map { |m| m["content"] }).to eq(["one", "It is 21C in Berlin.", "two"])
+    first, last = outer.reload.spans.order(:id).to_a
+    # Back in the outer trace, the base is the outer trace's own last round.
+    expect(last.metadata).to include("input_base_span_id" => first.id, "input_offset" => 1)
+    expect(last.full_input.map { |m| m["content"] })
+      .to eq(["one", "It is 21C in Berlin.", "two", "It is 21C in Berlin.", "three"])
   end
 
   it "records tokens but no cost for a model without registry pricing" do

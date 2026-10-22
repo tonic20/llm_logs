@@ -33,6 +33,35 @@ RSpec.describe LlmLogs::Span do
     end
   end
 
+  describe "#full_input" do
+    def round(input, base: nil, offset: nil)
+      metadata = base ? {"input_base_span_id" => base.id, "input_offset" => offset} : {}
+      LlmLogs::Span.create!(trace: trace, name: "chat.complete", span_type: "llm", started_at: Time.current,
+                            input: input, metadata: metadata)
+    end
+
+    def msg(content) = {"role" => "user", "content" => content}
+
+    it "returns the stored input of a span without a base" do
+      expect(round([msg("a"), msg("b")]).full_input).to eq([msg("a"), msg("b")])
+    end
+
+    it "rebuilds the input across a chain of rounds" do
+      first = round([msg("system"), msg("q")])
+      second = round([msg("a1"), msg("t1")], base: first, offset: 2)
+      third = round([msg("a2"), msg("t2")], base: second, offset: 4)
+
+      expect(third.full_input).to eq(%w[system q a1 t1 a2 t2].map { |c| msg(c) })
+    end
+
+    it "keeps only the carried-over part of the base" do
+      first = round([msg("system"), msg("q"), msg("draft")])
+      retry_round = round([msg("other")], base: first, offset: 2)
+
+      expect(retry_round.full_input).to eq([msg("system"), msg("q"), msg("other")])
+    end
+  end
+
   describe "#finish" do
     it "sets completed_at and duration_ms" do
       span = LlmLogs::Span.create!(trace: trace, name: "test", span_type: "llm", started_at: 1.second.ago)

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-10-22
+
+### Changed
+- An `llm` span that continues the trace's previous round stores only the messages that round added, plus `input_base_span_id` and `input_offset` in its metadata. Every round resends the whole conversation, so a turn's stored input grew with rounds × history; it is now about one copy. `LlmLogs::Span#full_input` rebuilds a round's full input, and the span page shows it. The trace page shows each round's new messages. Spans recorded before 0.8.0 keep their full input. Code that reads `span.input` of an `llm` span directly should read `span.full_input`.
+
+### Added
+- `LlmLogs::PurgeJob` deletes traces started more than `retention_days` ago, with their spans, and unlinks their batch requests. `retention_days` had no effect before; schedule the job from the host app.
+
+### Fixed
+- The trace page loads the span tree in one query instead of one query per span.
+- The prompts index loads only each prompt's newest version, without its messages, instead of every version.
+- Completing a trace totals its spans in one query instead of four.
+
 ## [0.7.1] - 2026-10-22
 
 ### Fixed

@@ -12,8 +12,10 @@ module LlmLogs
 
     def show
       @trace = Trace.includes(prompt_version: :prompt).find(params[:id])
-      @root_spans = @trace.root_spans
-      @models = @trace.spans.where(span_type: "llm").distinct.pluck(:model).compact
+      @spans = @trace.spans.order(:started_at).to_a
+      @child_spans = @spans.group_by(&:parent_span_id)
+      @root_spans = @child_spans.fetch(nil, [])
+      @models = @spans.select { |span| span.span_type == "llm" }.filter_map(&:model).uniq
     end
 
   end

@@ -105,14 +105,20 @@ module LlmLogs
 
             chat = payload[:chat]
             payload[USAGE_START_KEY] = chat.usage_entries.length if chat.respond_to?(:usage_entries)
-            payload[SPAN_KEY] = LlmLogs::Tracer.start_span(
+            messages = Serialize.messages(payload[:input_messages])
+            base = continued_round(messages)
+            metadata = request_metadata(payload)
+            metadata.merge!("input_base_span_id" => base[:span_id], "input_offset" => base[:messages].size) if base
+            span = LlmLogs::Tracer.start_span(
               name: "chat.complete",
               span_type: "llm",
               model: payload[:model],
               provider: payload[:provider],
-              input: Serialize.messages(payload[:input_messages]),
-              metadata: request_metadata(payload)
+              input: base ? messages.drop(base[:messages].size) : messages,
+              metadata: metadata
             )
+            LlmLogs::Tracer.last_llm_round = {trace_id: span.trace_id, span_id: span.id, messages: messages}
+            payload[SPAN_KEY] = span
           end
         end
 
@@ -136,6 +142,21 @@ module LlmLogs
         end
 
         private
+
+        # Every round of a chat resends the whole conversation. When this round's messages
+        # start with the trace's previous round's, the span stores only the new ones and
+        # points at that round; Span#full_input puts them back together. Anything else
+        # (another chat in the same trace, a rewritten history) stores the full input.
+        def continued_round(messages)
+          base = LlmLogs::Tracer.last_llm_round
+          trace = LlmLogs::Tracer.current_trace
+          return nil unless base && trace && base[:trace_id] == trace.id
+
+          prefix = base[:messages]
+          return nil if prefix.empty? || prefix.size > messages.size
+
+          messages.first(prefix.size) == prefix ? base : nil
+        end
 
         def request_metadata(payload)
           {
